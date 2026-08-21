@@ -72,7 +72,11 @@ while true; do
             ;;
         6)
             clear
-            python3 play_vs_ai.py
+            echo "Starting Zero-Friction Human vs. AI Server..."
+            echo "Launching Unciv Desktop Game UI connected to AI..."
+            echo ""
+            java -jar Unciv.jar &
+            python3 unciv_server.py
             read -p "Press [Enter] to return to menu..."
             ;;
         7)

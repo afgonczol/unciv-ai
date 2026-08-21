@@ -94,7 +94,11 @@ goto MENU
 
 :PLAY_VS_AI
 cls
-python play_vs_ai.py
+echo Starting Zero-Friction Human vs. AI Server...
+echo Launching Unciv Desktop Game UI connected to AI...
+echo.
+start javaw -jar Unciv.jar
+python unciv_server.py
 echo.
 pause
 goto MENU

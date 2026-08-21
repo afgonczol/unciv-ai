@@ -127,13 +127,40 @@ python3 unciv_agent.py \
 | `--barbarians`| Barbarian spawn rate | `Normal`, `None`, `Raging` |
 | `--turns` | Turn limit for session | `0` = continuous play until game over or `Ctrl+C`, `N` = run N turns |
 
-### 3. Resume a Saved Game
+### 3. Play Against Strategic AI (Zero-Friction Desktop GUI)
+
+Play directly in the official Unciv Desktop GUI against the Strategic AI without copying or pasting anything:
+
+1. Launch Option **`6`** in `./run_agent.sh` or `run_agent.bat` (or run `python3 unciv_server.py`).
+2. Unciv opens automatically. In the main menu, click **Multiplayer** -> **New Online Game**.
+3. Set your player as **Human** (e.g. Greece) and add your rival civilizations (e.g. Rome).
+4. Play your turn in the graphical game window, and click **"Next Turn"**.
+5. The Strategic AI immediately executes its turn in the background and returns the match to you with an alert sound & banner!
+
+---
+
+### 4. Multi-AI Battles (AI vs. AI with Different LLMs)
+
+You can pit multiple autonomous AIs against each other using different models and providers (e.g. local **llama.cpp**, **Ollama**, **OpenRouter**, or heuristic rulesets):
+
+```bash
+python3 unciv_server.py \
+  --ai "Rome:Focus on military conquest:http://localhost:8080/v1:meta-llama/llama-3.3-70b-instruct" \
+  --ai "Greece:Focus on science and expansion:http://localhost:11434/v1:mistral" \
+  --ai "Persia:Focus on culture and wonders:heuristic"
+```
+
+Each AI uses its assigned model, endpoint, and personality directive to formulate its grand strategy!
+
+---
+
+### 5. Resume a Saved Game
 
 ```bash
 python3 unciv_agent.py --load autosave.json
 ```
 
-### 4. Interactive Browser Replay Dashboard
+### 6. Interactive Browser Replay Dashboard
 
 Launch the local web visualizer to scrub turn-by-turn through your match history:
 
