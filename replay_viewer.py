@@ -158,6 +158,32 @@ def generate_replay_html(history_data: Dict[str, Any], available_replays: List[D
             color: var(--text-muted);
         }}
 
+        button.spectator-btn {{
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }}
+
+        button.spectator-btn:hover {{
+            border-color: #c084fc;
+        }}
+
+        button.spectator-btn.active {{
+            background: #9333ea;
+            color: #ffffff;
+            border-color: #c084fc;
+            box-shadow: 0 0 12px rgba(147, 51, 234, 0.4);
+        }}
+
         select.replay-select {{
             background: var(--bg-card);
             color: var(--text-main);
@@ -494,6 +520,8 @@ def generate_replay_html(history_data: Dict[str, Any], available_replays: List[D
                 </select>
             </div>
 
+            <button id="btn-spectator" class="spectator-btn" title="Toggle Spectator Mode / Reveal All (Hotkey: V)">👁️ Spectator: OFF</button>
+
             <span class="directive-tag" id="header-directive" title="{directive}">🎯 {directive}</span>
         </div>
 
@@ -731,6 +759,30 @@ def generate_replay_html(history_data: Dict[str, Any], available_replays: List[D
         }}
 
         let hoveredTile = null;
+        let spectatorMode = false;
+
+        const specBtn = document.getElementById("btn-spectator");
+        specBtn.addEventListener("click", toggleSpectator);
+
+        function toggleSpectator() {{
+            spectatorMode = !spectatorMode;
+            specBtn.classList.toggle("active", spectatorMode);
+            specBtn.innerText = spectatorMode ? "👁️ Spectator: ON" : "👁️ Spectator: OFF";
+            renderMap();
+        }}
+
+        function getCivColor(civName) {{
+            if (!civName) return "#64748b";
+            if (civName.includes("Rome")) return "#f59e0b";
+            if (civName.includes("Greece")) return "#06b6d4";
+            if (civName.includes("Persia")) return "#ec4899";
+            if (civName.includes("Egypt")) return "#eab308";
+            if (civName.includes("America")) return "#3b82f6";
+            if (civName.includes("Germany")) return "#64748b";
+            if (civName.includes("Spain")) return "#f43f5e";
+            if (civName.includes("Barbarian")) return "#dc2626";
+            return "#10b981";
+        }}
 
         function renderMap() {{
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -738,14 +790,14 @@ def generate_replay_html(history_data: Dict[str, Any], available_replays: List[D
 
             const turn = turnsData[currentTurnIdx];
             const tiles = (turn.map && turn.map.tiles) ? turn.map.tiles : [];
-            const cities = turn.cities || [];
-            const units = turn.units || [];
+            const playerCities = turn.cities || [];
+            const playerUnits = turn.units || [];
 
             // 1. Draw Hex Grid & Biomes
             tiles.forEach(t => {{
                 const pos = hexToPixel(t.x, t.y);
-                const isExplored = t.explored !== false;
-                const isVisible = t.visible !== false;
+                const isExplored = spectatorMode ? true : (t.explored !== false);
+                const isVisible = spectatorMode ? true : (t.visible !== false);
                 const col = getTerrainColor(t.terrain, t.features, t.is_hill, isExplored, isVisible);
                 
                 const strokeCol = isExplored ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.03)";
@@ -753,8 +805,8 @@ def generate_replay_html(history_data: Dict[str, Any], available_replays: List[D
 
                 if (!isExplored) return;
 
-                // Fog of War overlay
-                if (!isVisible) {{
+                // Fog of War overlay (disabled in spectator mode)
+                if (!isVisible && !spectatorMode) {{
                     drawHexagon(pos.x, pos.y, hexSize, "rgba(0,0,0,0.35)", null);
                 }}
 
@@ -808,7 +860,8 @@ def generate_replay_html(history_data: Dict[str, Any], available_replays: List[D
 
                 // Territory border
                 if (t.owner) {{
-                    drawHexagon(pos.x, pos.y, hexSize - 1, "transparent", "rgba(245, 158, 11, 0.6)", 2);
+                    const ownerCol = getCivColor(t.owner);
+                    drawHexagon(pos.x, pos.y, hexSize - 1, "transparent", ownerCol, 2);
                 }}
 
                 // Resource Icon
@@ -836,9 +889,35 @@ def generate_replay_html(history_data: Dict[str, Any], available_replays: List[D
                 }}
             }});
 
-            // 2. Draw Cities (Heraldic Badges)
-            cities.forEach(c => {{
+            // 2. Draw Cities (Spectator draws all world cities, Player draws friendly/seen)
+            const drawnCityCoords = new Set();
+            tiles.forEach(t => {{
+                if (t.city && (spectatorMode || t.explored !== false)) {{
+                    const pos = hexToPixel(t.x, t.y);
+                    const cityCol = getCivColor(t.owner);
+                    drawnCityCoords.add(`${{t.x}},${{t.y}}`);
+
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, hexSize * 0.68, 0, Math.PI * 2);
+                    ctx.fillStyle = cityCol;
+                    ctx.fill();
+                    ctx.strokeStyle = "#ffffff";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    ctx.fillStyle = "#ffffff";
+                    ctx.font = "bold 11px sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.fillText("🏛️ " + t.city, pos.x, pos.y - 3);
+                    ctx.font = "bold 9px sans-serif";
+                    ctx.fillText("Pop " + (t.city_pop || 1), pos.x, pos.y + 9);
+                }}
+            }});
+
+            // Draw player cities fallback if not already drawn
+            playerCities.forEach(c => {{
                 const loc = c.location || [0, 0];
+                if (drawnCityCoords.has(`${{loc[0]}},${{loc[1]}}`)) return;
                 const pos = hexToPixel(loc[0], loc[1]);
                 
                 ctx.beginPath();
@@ -858,24 +937,62 @@ def generate_replay_html(history_data: Dict[str, Any], available_replays: List[D
             }});
 
             // 3. Draw Units
-            units.forEach(u => {{
-                const loc = u.location || [0, 0];
-                const pos = hexToPixel(loc[0], loc[1]);
-                const isMil = u.is_military;
-                
-                ctx.beginPath();
-                ctx.arc(pos.x + 10, pos.y + 10, 11, 0, Math.PI * 2);
-                ctx.fillStyle = isMil ? "#ef4444" : "#0284c7";
-                ctx.fill();
-                ctx.strokeStyle = "#ffffff";
-                ctx.lineWidth = 2;
-                ctx.stroke();
+            if (spectatorMode) {{
+                // Spectator: Draw all world units across all tiles
+                tiles.forEach(t => {{
+                    const pos = hexToPixel(t.x, t.y);
+                    if (t.military_unit) {{
+                        const civCol = getCivColor(t.military_civ || t.owner);
+                        ctx.beginPath();
+                        ctx.arc(pos.x + 10, pos.y + 10, 11, 0, Math.PI * 2);
+                        ctx.fillStyle = civCol;
+                        ctx.fill();
+                        ctx.strokeStyle = "#ffffff";
+                        ctx.lineWidth = 1.8;
+                        ctx.stroke();
 
-                ctx.fillStyle = "#ffffff";
-                ctx.font = "bold 9px sans-serif";
-                ctx.textAlign = "center";
-                ctx.fillText(isMil ? "⚔️" : "🔨", pos.x + 10, pos.y + 13);
-            }});
+                        ctx.fillStyle = "#ffffff";
+                        ctx.font = "bold 9px sans-serif";
+                        ctx.textAlign = "center";
+                        ctx.fillText("⚔️", pos.x + 10, pos.y + 13);
+                    }}
+                    if (t.civilian_unit) {{
+                        const civCol = getCivColor(t.civilian_civ || t.owner);
+                        ctx.beginPath();
+                        ctx.arc(pos.x - 10, pos.y + 10, 11, 0, Math.PI * 2);
+                        ctx.fillStyle = civCol;
+                        ctx.fill();
+                        ctx.strokeStyle = "#ffffff";
+                        ctx.lineWidth = 1.8;
+                        ctx.stroke();
+
+                        ctx.fillStyle = "#ffffff";
+                        ctx.font = "bold 9px sans-serif";
+                        ctx.textAlign = "center";
+                        ctx.fillText("🔨", pos.x - 10, pos.y + 13);
+                    }}
+                }});
+            }} else {{
+                // Player mode: Draw player units + visible units
+                playerUnits.forEach(u => {{
+                    const loc = u.location || [0, 0];
+                    const pos = hexToPixel(loc[0], loc[1]);
+                    const isMil = u.is_military;
+                    
+                    ctx.beginPath();
+                    ctx.arc(pos.x + 10, pos.y + 10, 11, 0, Math.PI * 2);
+                    ctx.fillStyle = isMil ? "#ef4444" : "#0284c7";
+                    ctx.fill();
+                    ctx.strokeStyle = "#ffffff";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    ctx.fillStyle = "#ffffff";
+                    ctx.font = "bold 9px sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.fillText(isMil ? "⚔️" : "🔨", pos.x + 10, pos.y + 13);
+                }});
+            }}
 
             // 4. Highlight Hovered Tile
             if (hoveredTile) {{
@@ -901,7 +1018,7 @@ def generate_replay_html(history_data: Dict[str, Any], available_replays: List[D
             const tiles = (turn.map && turn.map.tiles) ? turn.map.tiles : [];
             const tile = tiles.find(t => t.x === rx && t.y === ry);
 
-            if (tile && tile.explored !== false) {{
+            if (tile && (spectatorMode || tile.explored !== false)) {{
                 hoveredTile = tile;
                 tooltip.style.display = "block";
                 tooltip.style.left = (e.clientX + 15) + "px";
@@ -916,7 +1033,7 @@ def generate_replay_html(history_data: Dict[str, Any], available_replays: List[D
                 if (tile.improvement) info += `Improvement: ${{tile.improvement}}<br>`;
                 if (tile.natural_wonder) info += `Wonder: ⭐ ${{tile.natural_wonder}}<br>`;
                 if (tile.owner) info += `Territory: 🏛️ ${{tile.owner}}<br>`;
-                if (tile.city) info += `City: 🏛️ ${{tile.city}}<br>`;
+                if (tile.city) info += `City: 🏛️ ${{tile.city}} (Pop ${{tile.city_pop || 1}})<br>`;
                 if (tile.military_unit) info += `Military: ⚔️ ${{tile.military_unit}}<br>`;
                 if (tile.civilian_unit) info += `Civilian: 🔨 ${{tile.civilian_unit}}<br>`;
 
@@ -1063,7 +1180,9 @@ def generate_replay_html(history_data: Dict[str, Any], available_replays: List[D
 
         // Keyboard navigation
         window.addEventListener("keydown", (e) => {{
-            if (e.code === "Space") {{
+            if (e.code === "KeyV" || e.code === "KeyF") {{
+                toggleSpectator();
+            }} else if (e.code === "Space") {{
                 e.preventDefault();
                 togglePlay();
             }} else if (e.code === "ArrowLeft") {{

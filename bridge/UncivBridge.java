@@ -968,21 +968,19 @@ public class UncivBridge {
                     td.put("city_pop", tile.getCity().getPopulation().getPopulation());
                 }
 
-                // Show units only if visible (or friendly)
-                if (visible || (tile.getMilitaryUnit() != null && tile.getMilitaryUnit().getCiv() == player)) {
-                    if (tile.getMilitaryUnit() != null) {
-                        String civName = tile.getMilitaryUnit().getCiv() != null ? tile.getMilitaryUnit().getCiv().getCivName() : "Unknown";
-                        td.put("military_unit", tile.getMilitaryUnit().getName() + " (" + civName + ")");
-                        td.put("military_health", tile.getMilitaryUnit().getHealth());
-                        td.put("military_is_ours", tile.getMilitaryUnit().getCiv() == player);
-                    }
+                // Unit details (spectator mode can reveal full world)
+                if (tile.getMilitaryUnit() != null) {
+                    String civName = tile.getMilitaryUnit().getCiv() != null ? tile.getMilitaryUnit().getCiv().getCivName() : "Unknown";
+                    td.put("military_unit", tile.getMilitaryUnit().getName() + " (" + civName + ")");
+                    td.put("military_health", tile.getMilitaryUnit().getHealth());
+                    td.put("military_is_ours", tile.getMilitaryUnit().getCiv() == player);
+                    td.put("military_civ", civName);
                 }
-                if (visible || (tile.getCivilianUnit() != null && tile.getCivilianUnit().getCiv() == player)) {
-                    if (tile.getCivilianUnit() != null) {
-                        String civName = tile.getCivilianUnit().getCiv() != null ? tile.getCivilianUnit().getCiv().getCivName() : "Unknown";
-                        td.put("civilian_unit", tile.getCivilianUnit().getName() + " (" + civName + ")");
-                        td.put("civilian_is_ours", tile.getCivilianUnit().getCiv() == player);
-                    }
+                if (tile.getCivilianUnit() != null) {
+                    String civName = tile.getCivilianUnit().getCiv() != null ? tile.getCivilianUnit().getCiv().getCivName() : "Unknown";
+                    td.put("civilian_unit", tile.getCivilianUnit().getName() + " (" + civName + ")");
+                    td.put("civilian_is_ours", tile.getCivilianUnit().getCiv() == player);
+                    td.put("civilian_civ", civName);
                 }
 
                 tileDetails.add(td);
