@@ -53,7 +53,7 @@ class TestReplayViewer(unittest.TestCase):
         html = generate_replay_html(sample_history)
         self.assertIn("Unciv AI Replay Viewer - Rome", html)
         self.assertIn("Focus on science", html)
-        self.assertIn("REPLAY_DATA", html)
+        self.assertIn("turnsData", html)
         self.assertIn("hex-canvas", html)
         self.assertIn("turn-slider", html)
 

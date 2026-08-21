@@ -35,6 +35,9 @@ class LLMClient:
         }
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
+        if "openrouter" in self.api_base:
+            headers["HTTP-Referer"] = "https://github.com/afgonczol/unciv-ai"
+            headers["X-Title"] = "Unciv AI Strategic Agent"
 
         payload = {
             "model": self.model,
@@ -152,10 +155,12 @@ class UncivAgent:
         system_prompt = (
             "You are an expert grand-strategy AI playing Civilization V (Unciv).\n"
             "Your objective is to win the game while strictly adhering to the player's strategic directive.\n"
-            "Respond ONLY with a JSON object specifying your strategic reasoning and actionable decisions for this turn.\n"
-            "JSON Format:\n"
+            "Analyze the state, formulate multi-turn grand strategy, and output actionable commands for this turn.\n"
+            "Respond ONLY with a valid JSON object in the following format:\n"
             "{\n"
-            "  \"reasoning\": \"Brief strategic summary of current turn priorities\",\n"
+            "  \"reasoning\": \"1-2 sentence high level summary of this turn's actions\",\n"
+            "  \"strategic_analysis\": \"Detailed strategic breakdown: multi-turn roadmap, tech goals, expansion targets, threat mitigations, and alignment with the directive\",\n"
+            "  \"tactical_intent\": \"Tactical explanation of specific unit movements, scouting angles, and city construction choices\",\n"
             "  \"choose_tech\": \"TechName\" or null,\n"
             "  \"adopt_policy\": \"PolicyName\" or null,\n"
             "  \"city_actions\": [\n"
@@ -193,9 +198,9 @@ class UncivAgent:
                     "name": u["name"],
                     "location": u["location"],
                     "movement": u["movement"],
-                    "is_military": u.get("is_military"),
-                    "is_idle": u.get("is_idle"),
-                    "available_actions": u.get("available_actions", [])
+                    "is_military": u.get("is_military", False),
+                    "is_idle": u.get("is_idle", False),
+                    "health": u.get("health", 100)
                 }
                 for u in state.get("units", [])
             ],
@@ -206,15 +211,24 @@ class UncivAgent:
         }
 
         plan = None
+        raw_response = None
+        llm_error_str = None
+        is_llm_used = False
+
         if self.llm:
-            print("\nConsulting Strategic LLM...")
+            print(f"\nConsulting Strategic LLM ({self.llm.model})...")
             try:
                 raw_response = self.llm.chat_completion([
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": json.dumps(user_content, indent=2)}
                 ])
                 plan = self._extract_json(raw_response)
+                if plan:
+                    is_llm_used = True
+                else:
+                    llm_error_str = "Could not parse JSON from LLM response."
             except Exception as e:
+                llm_error_str = str(e)
                 print(f"LLM consultation error: {e}")
                 print("Falling back to Strategic Advisor heuristic decisions.")
 
@@ -223,7 +237,13 @@ class UncivAgent:
             plan = self._build_heuristic_plan(state, advisor_report)
 
         print("\n=== Strategic Decision Plan ===")
+        engine_label = f"🤖 LLM ({self.llm.model})" if is_llm_used else "⚡ Strategic Heuristics"
+        print(f"Engine: {engine_label}")
         print(f"Reasoning: {plan.get('reasoning', 'Executing tactical and economic development.')}")
+        if plan.get("strategic_analysis"):
+            print(f"Strategic Analysis: {plan['strategic_analysis']}")
+        if plan.get("tactical_intent"):
+            print(f"Tactical Intent: {plan['tactical_intent']}")
 
         if interactive:
             print("\nAction Proposals:")
@@ -261,6 +281,9 @@ class UncivAgent:
         snapshot = {
             "turn": turn_num,
             "civ_name": civ_name,
+            "decision_mode": "LLM" if is_llm_used else "Heuristic",
+            "llm_model": self.llm.model if (self.llm and is_llm_used) else None,
+            "llm_error": llm_error_str,
             "stats": state.get("stats", {}),
             "tech": state.get("technology", {}),
             "policies": state.get("policies", {}),
@@ -273,6 +296,7 @@ class UncivAgent:
                 "alerts": advisor_report.get("alerts", [])
             },
             "plan": plan,
+            "raw_llm_response": raw_response if is_llm_used else None,
             "execution": execution_log,
             "notifications": notifs
         }

@@ -75,10 +75,10 @@ def generate_replay_html(history_data: Dict[str, Any], available_replays: List[D
     Generates a standalone single-file HTML replay dashboard with embedded JSON data
     and an interactive match switcher dropdown.
     """
-    civ_name = history_data.get("civ", "Unknown")
-    directive = history_data.get("directive", "Balanced Strategy")
     turns = history_data.get("turns", [])
     total_turns = len(turns)
+    civ_name = history_data.get("civ") or history_data.get("civilization") or (turns[0].get("civ_name") if turns else None) or "Rome"
+    directive = history_data.get("directive", "Balanced Strategy")
     json_payload = json.dumps(history_data)
     replays_json = json.dumps(available_replays or [])
 
@@ -341,6 +341,41 @@ def generate_replay_html(history_data: Dict[str, Any], available_replays: List[D
             margin-bottom: 4px;
         }}
 
+        .engine-badge {{
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 4px;
+            background: #334155;
+            color: #94a3b8;
+            letter-spacing: 0.3px;
+        }}
+
+        .engine-badge.llm {{
+            background: #1e1b4b;
+            color: #a5b4fc;
+            border: 1px solid #6366f1;
+        }}
+
+        .raw-toggle-btn {{
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            text-align: center;
+            transition: all 0.15s ease;
+        }}
+
+        .raw-toggle-btn:hover {{
+            background: rgba(255,255,255,0.12);
+            color: #ffffff;
+            border-color: #6366f1;
+        }}
+
         .tech-card {{
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -552,10 +587,33 @@ def generate_replay_html(history_data: Dict[str, Any], available_replays: List[D
 
         <aside>
             <div class="sidebar-section">
-                <h3>Strategic Advisor</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <h3 style="margin-bottom: 0;">Decision Engine</h3>
+                    <span id="engine-badge" class="engine-badge">⚡ Heuristics</span>
+                </div>
                 <div class="advisor-box">
                     <div class="advisor-focus" id="adv-focus">Balanced Growth</div>
-                    <div id="adv-reasoning">Analyzing map topology and expansion candidates...</div>
+                    <div id="adv-reasoning" style="color: #e2e8f0; font-size: 13px;">Analyzing map topology and expansion candidates...</div>
+
+                    <div id="adv-strat-analysis-wrap" style="display:none; margin-top:8px; border-top:1px solid rgba(255,255,255,0.1); padding-top:6px;">
+                        <div style="font-size:11px; font-weight:700; color:#a5b4fc; margin-bottom:2px;">🧠 Strategic Plan & Trajectory:</div>
+                        <div id="adv-strat-analysis" style="font-size:12px; color:#cbd5e1; line-height:1.4;"></div>
+                    </div>
+
+                    <div id="adv-tactical-wrap" style="display:none; margin-top:8px; border-top:1px solid rgba(255,255,255,0.1); padding-top:6px;">
+                        <div style="font-size:11px; font-weight:700; color:#38bdf8; margin-bottom:2px;">🎯 Tactical Intent:</div>
+                        <div id="adv-tactical" style="font-size:12px; color:#cbd5e1; line-height:1.4;"></div>
+                    </div>
+
+                    <div id="adv-error-wrap" style="display:none; margin-top:8px; border-top:1px solid rgba(239,68,68,0.3); padding-top:6px;">
+                        <div style="font-size:11px; font-weight:700; color:#f87171; margin-bottom:2px;">⚠️ LLM Notice:</div>
+                        <div id="adv-error" style="font-size:11px; color:#fca5a5; line-height:1.3;"></div>
+                    </div>
+
+                    <div id="adv-raw-toggle-wrap" style="display:none; margin-top:10px;">
+                        <button id="btn-toggle-raw" class="raw-toggle-btn">🔍 View Raw LLM Output</button>
+                        <pre id="adv-raw-response" style="display:none; margin-top:6px; background:#0f172a; padding:8px; border-radius:4px; font-size:10px; color:#38bdf8; max-height:160px; overflow-y:auto; white-space:pre-wrap; border:1px solid rgba(255,255,255,0.1);"></pre>
+                    </div>
                 </div>
             </div>
 
@@ -1104,11 +1162,63 @@ def generate_replay_html(history_data: Dict[str, Any], available_replays: List[D
             const progress = (tech.science_cost > 0) ? (tech.science_progress / tech.science_cost) * 100 : 0;
             document.getElementById("tech-progress").style.width = Math.min(100, progress) + "%";
 
-            // Advisor
+            // Decision Engine & LLM badge
+            const isLlm = data.decision_mode === "LLM" || !!data.llm_model || (data.plan && data.plan.reasoning && !data.plan.reasoning.includes("Advisor heuristic"));
+            const engineBadge = document.getElementById("engine-badge");
+            if (isLlm) {{
+                const modelName = data.llm_model ? data.llm_model.split("/").pop() : "LLM";
+                engineBadge.innerText = "🤖 " + modelName;
+                engineBadge.className = "engine-badge llm";
+            }} else {{
+                engineBadge.innerText = "⚡ Heuristics";
+                engineBadge.className = "engine-badge";
+            }}
+
+            // Advisor & Plan
             const adv = data.advisor || {{}};
             document.getElementById("adv-focus").innerText = adv.recommended_focus || "Balanced Growth";
             const plan = data.plan || {{}};
-            document.getElementById("adv-reasoning").innerText = plan.reasoning || "Tactical progression.";
+            document.getElementById("adv-reasoning").innerText = plan.reasoning || data.llm_reasoning || "Tactical progression.";
+
+            // Grand Strategy / Strategic Analysis
+            const stratAnalysis = plan.strategic_analysis || data.strategic_analysis;
+            const stratWrap = document.getElementById("adv-strat-analysis-wrap");
+            if (stratAnalysis) {{
+                stratWrap.style.display = "block";
+                document.getElementById("adv-strat-analysis").innerText = stratAnalysis;
+            }} else {{
+                stratWrap.style.display = "none";
+            }}
+
+            // Tactical Intent
+            const tactical = plan.tactical_intent || data.tactical_intent;
+            const tactWrap = document.getElementById("adv-tactical-wrap");
+            if (tactical) {{
+                tactWrap.style.display = "block";
+                document.getElementById("adv-tactical").innerText = tactical;
+            }} else {{
+                tactWrap.style.display = "none";
+            }}
+
+            // LLM Notice / Error
+            const errWrap = document.getElementById("adv-error-wrap");
+            if (data.llm_error) {{
+                errWrap.style.display = "block";
+                document.getElementById("adv-error").innerText = data.llm_error;
+            }} else {{
+                errWrap.style.display = "none";
+            }}
+
+            // Raw LLM Output Toggle
+            const rawWrap = document.getElementById("adv-raw-toggle-wrap");
+            const rawEl = document.getElementById("adv-raw-response");
+            if (data.raw_llm_response) {{
+                rawWrap.style.display = "block";
+                rawEl.innerText = typeof data.raw_llm_response === 'string' ? data.raw_llm_response : JSON.stringify(data.raw_llm_response, null, 2);
+            }} else {{
+                rawWrap.style.display = "none";
+                rawEl.style.display = "none";
+            }}
 
             // Logs
             const logsContainer = document.getElementById("turn-logs");
@@ -1163,6 +1273,15 @@ def generate_replay_html(history_data: Dict[str, Any], available_replays: List[D
         document.getElementById("btn-prev").addEventListener("click", () => updateTurn(currentTurnIdx - 1));
         document.getElementById("btn-next").addEventListener("click", () => updateTurn(currentTurnIdx + 1));
         document.getElementById("turn-slider").addEventListener("input", (e) => updateTurn(parseInt(e.target.value)));
+
+        const rawToggleBtn = document.getElementById("btn-toggle-raw");
+        if (rawToggleBtn) {{
+            rawToggleBtn.addEventListener("click", () => {{
+                const rawEl = document.getElementById("adv-raw-response");
+                rawEl.style.display = (rawEl.style.display === "none" || !rawEl.style.display) ? "block" : "none";
+                rawToggleBtn.innerText = (rawEl.style.display === "block") ? "✖ Hide Raw LLM Output" : "🔍 View Raw LLM Output";
+            }});
+        }}
 
         document.getElementById("btn-speed").addEventListener("click", () => {{
             const speeds = [0.5, 1.0, 2.0, 5.0];

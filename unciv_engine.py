@@ -142,7 +142,9 @@ class UncivEngine:
                     raise UncivEngineError(data.get("error", "Unknown engine error"))
                 return data
 
-            except Exception as e:
+            except UncivEngineError:
+                raise
+            except (socket.timeout, socket.error, ConnectionResetError, BrokenPipeError, ConnectionRefusedError) as e:
                 # If socket timed out or was interrupted (e.g. system sleep/resume)
                 # check if Java daemon process is still healthy and try to reconnect
                 if self.process and self.process.poll() is None:
@@ -165,7 +167,7 @@ class UncivEngine:
                             p_chunk = self.sock.recv(4096)
                             if not p_chunk or b"\n" in p_chunk:
                                 break
-                        # Connection recovered
+                        # Connection recovered - retry fetching state
                         state_res = (json.dumps({"command": "get_state"}) + "\n").encode("utf-8")
                         self.sock.sendall(state_res)
                         s_buf = bytearray()
@@ -177,7 +179,7 @@ class UncivEngine:
                             if b"\n" in s_chunk:
                                 break
                         recovered_data = json.loads(s_buf.decode("utf-8").strip())
-                        return {"status": "ok", "message": "Turn advanced (reconnected after suspend)", "state": recovered_data}
+                        return {"status": "ok", "state": recovered_data}
                     except Exception:
                         pass
 
