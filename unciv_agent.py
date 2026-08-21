@@ -476,8 +476,13 @@ def main():
     parser = argparse.ArgumentParser(description="Unciv LLM Strategic Agent")
     parser.add_argument("--strategy", type=str, default="", help="Strategic directive (e.g. 'Focus on science and be aggressive against European nations')")
     parser.add_argument("--civ", type=str, default="Rome", help="Civilization to play (e.g. Rome, Greece, America)")
-    parser.add_argument("--difficulty", type=str, default="Prince", help="Difficulty level")
+    parser.add_argument("--difficulty", type=str, default="Prince", help="Difficulty: Settler, Chieftain, Warlord, Prince, King, Emperor, Immortal, Deity")
     parser.add_argument("--map-size", type=str, default="Tiny", help="Map size: Tiny, Small, Medium, Large, Huge")
+    parser.add_argument("--map-type", type=str, default="Pangaea", help="Map type: Pangaea, Continents, Archipelago, Inner Sea, Lakes, Four Corners, Fractal, etc.")
+    parser.add_argument("--speed", type=str, default="Standard", help="Game speed: Quick, Standard, Epic, Marathon")
+    parser.add_argument("--opponents", type=int, default=3, help="Number of AI opponents (default: 3)")
+    parser.add_argument("--city-states", type=int, default=-1, help="Number of city-states (-1 = default for map size)")
+    parser.add_argument("--barbarians", type=str, default="Normal", help="Barbarians: Normal, None, Raging")
     parser.add_argument("--turns", type=int, default=0, help="Number of turns to play (default: 0 = play until game ends or Ctrl+C)")
     parser.add_argument("--load", type=str, default="", help="Path to save file to load (e.g. autosave.json)")
     parser.add_argument("--record", type=str, default="", help="Path to record turn-by-turn replay history (default: auto-generated timestamp in replays/)")
@@ -508,9 +513,18 @@ def main():
         res = engine.load_game(save_content)
         print(f"      Game loaded successfully!", flush=True)
     else:
-        print(f"[2/3] Generating new game map ({args.civ}, Difficulty: {args.difficulty}, MapSize: {args.map_size})...", flush=True)
+        print(f"[2/3] Generating new game map ({args.civ}, Difficulty: {args.difficulty}, Map: {args.map_type} {args.map_size}, Speed: {args.speed}, Opponents: {args.opponents})...", flush=True)
         t0 = time.time()
-        res = engine.new_game(nation=args.civ, difficulty=args.difficulty, map_size=args.map_size)
+        res = engine.new_game(
+            nation=args.civ,
+            difficulty=args.difficulty,
+            map_size=args.map_size,
+            map_type=args.map_type,
+            speed=args.speed,
+            opponents=args.opponents,
+            city_states=args.city_states,
+            barbarians=args.barbarians
+        )
         print(f"      Map generated in {time.time()-t0:.1f}s", flush=True)
 
     print(f"[3/3] Match ready! Playing as: {res.get('active_civ', args.civ)} (Turn {res.get('turn', 0)})\n", flush=True)

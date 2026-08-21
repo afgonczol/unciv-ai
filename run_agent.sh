@@ -48,11 +48,17 @@ while true; do
             userciv=${userciv:-Rome}
             read -p "Enter Strategic Directive (default 'Balanced Strategy'): " userstrat
             userstrat=${userstrat:-"Balanced Strategy"}
+            read -p "Enter Map Size (Tiny, Small, Medium, Large, Huge - default Tiny): " usermapsize
+            usermapsize=${usermapsize:-Tiny}
+            read -p "Enter Map Type (Pangaea, Continents, Archipelago, Lakes, Inner Sea - default Pangaea): " usermaptype
+            usermaptype=${usermaptype:-Pangaea}
+            read -p "Enter Difficulty (Settler, Prince, King, Deity - default Prince): " userdiff
+            userdiff=${userdiff:-Prince}
 
             echo ""
-            echo "Starting game as $userciv with directive: \"$userstrat\"..."
+            echo "Starting game as $userciv ($usermaptype $usermapsize, $userdiff) with directive: \"$userstrat\"..."
             echo ""
-            python3 unciv_agent.py --civ "$userciv" --strategy "$userstrat"
+            python3 unciv_agent.py --civ "$userciv" --strategy "$userstrat" --map-size "$usermapsize" --map-type "$usermaptype" --difficulty "$userdiff"
             read -p "Press [Enter] to return to menu..."
             ;;
         5)

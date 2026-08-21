@@ -97,19 +97,35 @@ Verify your Python environment, Java JRE, bridge socket, and map generator:
 python3 run_diagnostics.py
 ```
 
-### 2. Autonomous Play (Built-in Heuristic Mode)
+### 2. Autonomous Play (Customizable Game Settings)
 
-Run a continuous match with Rome using heuristic AI decision-making (press `Ctrl+C` anytime to pause):
-
-```bash
-python3 unciv_agent.py --civ Rome --strategy "Focus on science and expand rapidly"
-```
-
-To run a fixed turn window (e.g. 50 turns):
+You can customize the civilization, strategy directive, map size, map type, speed, difficulty, and opponents via CLI flags:
 
 ```bash
-python3 unciv_agent.py --civ Rome --strategy "Build a massive military and conquer our neighbors" --turns 50
+python3 unciv_agent.py \
+  --civ Greece \
+  --strategy "Focus on culture and rapid expansion" \
+  --map-size Small \
+  --map-type Continents \
+  --speed Quick \
+  --difficulty King \
+  --opponents 5 \
+  --barbarians Normal
 ```
+
+#### Supported Configuration Options:
+| Flag | Description | Supported Values |
+|------|-------------|------------------|
+| `--civ` | Civilization to play | `Rome`, `Greece`, `America`, `England`, `France`, `Germany`, `Egypt`, `Japan`, `China`, `India`, `Russia`, `Spain`, `Persia`, `Songhai`, `Siam`, `Iroquois`, `Aztec`, `Ottomans`, `Arabia` |
+| `--strategy` | Strategic directive | `"Focus on science and expand rapidly"`, `"Build a massive military and conquer our neighbors"`, `"Focus on cultural wonder building"`, etc. |
+| `--map-size` | World dimensions | `Tiny` (4 civs), `Small` (6 civs), `Medium` (8 civs), `Large` (10 civs), `Huge` (12 civs) |
+| `--map-type` | World geography layout | `Pangaea`, `Continents`, `Archipelago`, `Inner Sea`, `Lakes`, `Four Corners`, `Fractal`, `Spiral` |
+| `--speed` | Game pace / research scaling | `Quick` (330 turns), `Standard` (500 turns), `Epic` (750 turns), `Marathon` (1500 turns) |
+| `--difficulty`| AI handicap / challenge | `Settler`, `Chieftain`, `Warlord`, `Prince` (Standard), `King`, `Emperor`, `Immortal`, `Deity` |
+| `--opponents` | Number of rival AI empires | `1` to `15` (default: 3) |
+| `--city-states`| Number of minor city-states | `0` to `24` (`-1` = default for map size) |
+| `--barbarians`| Barbarian spawn rate | `Normal`, `None`, `Raging` |
+| `--turns` | Turn limit for session | `0` = continuous play until game over or `Ctrl+C`, `N` = run N turns |
 
 ### 3. Resume a Saved Game
 

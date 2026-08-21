@@ -174,32 +174,48 @@ public class UncivBridge {
                     String difficulty = (String) req.getOrDefault("difficulty", "Prince");
                     String rulesetName = (String) req.getOrDefault("ruleset", "Civ V - Vanilla");
                     String mapSizeStr = (String) req.getOrDefault("map_size", "Tiny");
+                    String mapTypeStr = (String) req.getOrDefault("map_type", "Pangaea");
+                    String speedStr = (String) req.getOrDefault("speed", "Standard");
+                    int opponentsCount = ((Number) req.getOrDefault("opponents", 3)).intValue();
+                    int cityStatesCount = ((Number) req.getOrDefault("city_states", -1)).intValue();
+                    String barbariansStr = (String) req.getOrDefault("barbarians", "Normal");
                     
                     GameSetupInfo setup = new GameSetupInfo();
                     setup.getGameParameters().setBaseRuleset(rulesetName);
                     setup.getMapParameters().setBaseRuleset(rulesetName);
                     setup.getGameParameters().setDifficulty(difficulty);
+                    setup.getGameParameters().setSpeed(speedStr);
                     setup.getMapParameters().setShape(MapShape.rectangular);
+                    setup.getMapParameters().setType(mapTypeStr);
                     setup.getMapParameters().setWorldWrap(true);
                     setup.getMapParameters().setStrategicBalance(true);
                     setup.getMapParameters().setLegendaryStart(true);
 
+                    if (barbariansStr.equalsIgnoreCase("None")) {
+                        setup.getGameParameters().setNoBarbarians(true);
+                    } else if (barbariansStr.equalsIgnoreCase("Raging")) {
+                        setup.getGameParameters().setRagingBarbarians(true);
+                    }
+
+                    int defaultCS = 4;
                     if (mapSizeStr.equalsIgnoreCase("Tiny")) {
                         setup.getMapParameters().setMapSize(MapSize.Companion.getTiny());
-                        setup.getGameParameters().setNumberOfCityStates(2);
+                        defaultCS = 2;
                     } else if (mapSizeStr.equalsIgnoreCase("Small")) {
                         setup.getMapParameters().setMapSize(MapSize.Companion.getSmall());
-                        setup.getGameParameters().setNumberOfCityStates(6);
+                        defaultCS = 6;
                     } else if (mapSizeStr.equalsIgnoreCase("Large")) {
                         setup.getMapParameters().setMapSize(MapSize.Companion.getLarge());
-                        setup.getGameParameters().setNumberOfCityStates(12);
+                        defaultCS = 12;
                     } else if (mapSizeStr.equalsIgnoreCase("Huge")) {
                         setup.getMapParameters().setMapSize(MapSize.Companion.getHuge());
-                        setup.getGameParameters().setNumberOfCityStates(16);
+                        defaultCS = 16;
                     } else {
                         setup.getMapParameters().setMapSize(MapSize.Companion.getMedium());
-                        setup.getGameParameters().setNumberOfCityStates(8);
+                        defaultCS = 8;
                     }
+
+                    setup.getGameParameters().setNumberOfCityStates(cityStatesCount >= 0 ? cityStatesCount : defaultCS);
 
                     setup.getGameParameters().getPlayers().clear();
                     Player human = new Player();
@@ -207,7 +223,8 @@ public class UncivBridge {
                     human.setPlayerType(PlayerType.Human);
                     setup.getGameParameters().getPlayers().add(human);
 
-                    for (int i = 0; i < 3; i++) {
+                    int numAi = Math.max(1, Math.min(15, opponentsCount));
+                    for (int i = 0; i < numAi; i++) {
                         Player ai = new Player();
                         ai.setChosenCiv(Constants.random);
                         ai.setPlayerType(PlayerType.AI);

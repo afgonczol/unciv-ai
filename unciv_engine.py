@@ -190,7 +190,10 @@ class UncivEngine:
         return res.get("message") == "pong"
 
     def new_game(self, nation: str = "", difficulty: str = "Prince",
-                 ruleset: str = "Civ V - Vanilla", map_size: str = "Tiny") -> Dict[str, Any]:
+                 ruleset: str = "Civ V - Vanilla", map_size: str = "Tiny",
+                 map_type: str = "Pangaea", speed: str = "Standard",
+                 opponents: int = 3, city_states: int = -1,
+                 barbarians: str = "Normal") -> Dict[str, Any]:
         """
         Starts a new game with specified parameters.
         """
@@ -199,7 +202,12 @@ class UncivEngine:
             "nation": nation,
             "difficulty": difficulty,
             "ruleset": ruleset,
-            "map_size": map_size
+            "map_size": map_size,
+            "map_type": map_type,
+            "speed": speed,
+            "opponents": opponents,
+            "city_states": city_states,
+            "barbarians": barbarians
         })
 
     def get_state(self) -> Dict[str, Any]:
