@@ -473,17 +473,37 @@ def main():
 
     try:
         while turn_count < max_turns:
-            agent.play_turn(interactive=args.interactive)
-            turn_count += 1
-            # Autosave game state after every turn
             try:
-                save_str = engine.save_game()
-                if save_str:
-                    with open("autosave.json", "w", encoding="utf-8") as sf:
-                        sf.write(save_str)
-            except Exception:
-                pass
-            time.sleep(0.3)
+                agent.play_turn(interactive=args.interactive)
+                turn_count += 1
+                # Autosave game state after every turn
+                try:
+                    save_str = engine.save_game()
+                    if save_str:
+                        with open("autosave.json", "w", encoding="utf-8") as sf:
+                            sf.write(save_str)
+                except Exception:
+                    pass
+                time.sleep(0.3)
+            except UncivEngineError as e:
+                print(f"\n⚠️ Engine communication warning on turn {turn_count}: {e}", flush=True)
+                if os.path.exists("autosave.json"):
+                    print("🔄 Automatically restarting engine daemon and resuming from autosave.json...", flush=True)
+                    try:
+                        engine.close()
+                        time.sleep(1.0)
+                        engine = UncivEngine()
+                        with open("autosave.json", "r", encoding="utf-8") as sf:
+                            saved = sf.read()
+                        engine.load_game(saved)
+                        agent.engine = engine
+                        print("✅ Game state restored! Continuing match...\n", flush=True)
+                        continue
+                    except Exception as rec_err:
+                        print(f"❌ Failed to auto-recover: {rec_err}", flush=True)
+                        raise e
+                else:
+                    raise e
     except KeyboardInterrupt:
         print(f"\nGame paused by user after {turn_count} turns (saved to autosave.json and {args.record}).", flush=True)
     finally:

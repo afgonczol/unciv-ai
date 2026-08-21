@@ -57,8 +57,8 @@ class UncivEngine:
 
             cmd = [
                 "java",
-                "-Xms128m",
-                "-Xmx1024m",
+                "-Xms256m",
+                "-Xmx2048m",
                 "-XX:+UseG1GC",
                 "-cp", "Unciv.jar",
                 "bridge/UncivBridge.java",

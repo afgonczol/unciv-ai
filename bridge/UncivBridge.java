@@ -416,6 +416,7 @@ public class UncivBridge {
                     for (Notification n : player.getNotifications()) {
                         newNotifications.add(n.getText());
                     }
+                    player.getNotifications().clear();
 
                     response.put("status", "ok");
                     response.put("old_turn", oldTurn);
