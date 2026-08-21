@@ -9,7 +9,7 @@ import json
 import os
 import sys
 import time
-import threading
+import datetime
 import argparse
 import urllib.request
 import urllib.error
@@ -70,13 +70,13 @@ class UncivAgent:
     """
 
     def __init__(self, engine: Optional[UncivEngine] = None, llm_client: Optional[LLMClient] = None,
-                 strategy_directive: str = "", record_file: str = "replay_history.json"):
+                 strategy_directive: str = "", record_file: str = "replay_history.json", resume_history: bool = False):
         self.engine = engine or UncivEngine()
         self.advisor = StrategicAdvisor()
         self.llm = llm_client
         self.record_file = record_file
         self.history: List[Dict[str, Any]] = []
-        if self.record_file and os.path.exists(self.record_file):
+        if resume_history and self.record_file and os.path.exists(self.record_file):
             try:
                 with open(self.record_file, "r", encoding="utf-8") as rf:
                     existing = json.load(rf)
@@ -284,13 +284,23 @@ class UncivAgent:
 
         if self.record_file:
             try:
+                data_to_write = {
+                    "civ": civ_name,
+                    "directive": self.advisor.user_directive or "Balanced Strategy",
+                    "total_turns": len(self.history),
+                    "recorded_at": datetime.datetime.now().isoformat(),
+                    "turns": self.history
+                }
                 with open(self.record_file, "w", encoding="utf-8") as rf:
-                    json.dump({
-                        "civ": civ_name,
-                        "directive": self.advisor.user_directive,
-                        "total_turns": len(self.history),
-                        "turns": self.history
-                    }, rf, indent=2)
+                    json.dump(data_to_write, rf, indent=2)
+
+                # Mirror to replays/latest.json and replay_history.json
+                latest_path = os.path.join("replays", "latest.json")
+                if os.path.abspath(self.record_file) != os.path.abspath(latest_path):
+                    with open(latest_path, "w", encoding="utf-8") as lf:
+                        json.dump(data_to_write, lf, indent=2)
+                with open("replay_history.json", "w", encoding="utf-8") as rh:
+                    json.dump(data_to_write, rh, indent=2)
             except Exception:
                 pass
 
@@ -468,13 +478,21 @@ def main():
     parser.add_argument("--map-size", type=str, default="Tiny", help="Map size: Tiny, Small, Medium, Large, Huge")
     parser.add_argument("--turns", type=int, default=0, help="Number of turns to play (default: 0 = play until game ends or Ctrl+C)")
     parser.add_argument("--load", type=str, default="", help="Path to save file to load (e.g. autosave.json)")
-    parser.add_argument("--record", type=str, default="replay_history.json", help="Path to record turn-by-turn replay history (default: replay_history.json)")
+    parser.add_argument("--record", type=str, default="", help="Path to record turn-by-turn replay history (default: auto-generated timestamp in replays/)")
     parser.add_argument("--interactive", action="store_true", help="Run in interactive co-pilot mode")
     parser.add_argument("--api-base", type=str, default="", help="LLM API base URL (e.g. https://openrouter.ai/api/v1 or http://localhost:8080/v1)")
     parser.add_argument("--api-key", type=str, default="", help="API key for LLM provider")
     parser.add_argument("--model", type=str, default="", help="Model name (e.g. meta-llama/llama-3.3-70b-instruct or local model)")
 
     args = parser.parse_args()
+
+    os.makedirs("replays", exist_ok=True)
+    if args.record:
+        record_path = args.record
+    else:
+        timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        prefix = "resumed" if args.load else "match"
+        record_path = os.path.join("replays", f"replay_{args.civ}_{prefix}_{timestamp_str}.json")
 
     print("[1/3] Initializing Unciv engine daemon...", flush=True)
     t0 = time.time()
@@ -499,7 +517,13 @@ def main():
     if args.api_base:
         llm_client = LLMClient(api_base=args.api_base, api_key=args.api_key, model=args.model)
 
-    agent = UncivAgent(engine=engine, llm_client=llm_client, strategy_directive=args.strategy, record_file=args.record)
+    agent = UncivAgent(
+        engine=engine,
+        llm_client=llm_client,
+        strategy_directive=args.strategy,
+        record_file=record_path,
+        resume_history=bool(args.load)
+    )
 
     turn_count = 0
     max_turns = args.turns if args.turns > 0 else float("inf")

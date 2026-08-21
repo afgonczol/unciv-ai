@@ -1,28 +1,86 @@
 """
-Unciv AI Interactive Browser Replay Dashboard & Local Viewer Server
-Generates a standalone, self-contained HTML5 Canvas/SVG dashboard to visually scrub,
-play, and inspect turn-by-turn Unciv AI matches.
+Unciv AI Interactive Browser Replay Dashboard & Multi-Replay Manager
+Automatically discovers, lists, and visualizes turn-by-turn match replays from the replays/ directory.
+Defaults to the most recently created replay and allows instant switching between past games.
 """
 
 import os
 import sys
 import json
+import glob
+import time
 import argparse
+import urllib.parse
 import webbrowser
 import http.server
 import socketserver
 import threading
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 
-def generate_replay_html(history_data: Dict[str, Any]) -> str:
+def get_available_replays(replay_dir: str = "replays") -> List[Dict[str, Any]]:
     """
-    Generates a standalone single-file HTML replay dashboard with embedded JSON data.
+    Scans the replay directory and workspace for replay files, sorted by newest first.
+    """
+    files = []
+    if os.path.exists(replay_dir):
+        match_files = glob.glob(os.path.join(replay_dir, "replay_*.json"))
+        if match_files:
+            files.extend(match_files)
+        else:
+            files.extend(glob.glob(os.path.join(replay_dir, "*.json")))
+    if not files and os.path.exists("replay_history.json"):
+        files.append("replay_history.json")
+
+    # Deduplicate and sort by modification time (descending)
+    unique_files = list(dict.fromkeys([os.path.abspath(f) for f in files]))
+    unique_files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
+
+    replays_meta = []
+    for filepath in unique_files:
+        try:
+            filename = os.path.basename(filepath)
+            mtime = os.path.getmtime(filepath)
+            time_str = time.strftime("%b %d %H:%M:%S", time.localtime(mtime))
+            
+            with open(filepath, "r", encoding="utf-8") as rf:
+                data = json.load(rf)
+
+            civ = data.get("civ", "Unknown")
+            directive = data.get("directive", "Balanced Strategy")
+            turns_count = len(data.get("turns", []))
+            
+            replays_meta.append({
+                "path": filepath,
+                "filename": filename,
+                "civ": civ,
+                "directive": directive,
+                "turns_count": turns_count,
+                "modified": time_str,
+                "mtime": mtime
+            })
+        except Exception:
+            continue
+
+    return replays_meta
+
+def get_latest_replay_path(replay_dir: str = "replays") -> Optional[str]:
+    """
+    Returns the path to the newest replay file.
+    """
+    replays = get_available_replays(replay_dir)
+    return replays[0]["path"] if replays else None
+
+def generate_replay_html(history_data: Dict[str, Any], available_replays: List[Dict[str, Any]] = None) -> str:
+    """
+    Generates a standalone single-file HTML replay dashboard with embedded JSON data
+    and an interactive match switcher dropdown.
     """
     civ_name = history_data.get("civ", "Unknown")
     directive = history_data.get("directive", "Balanced Strategy")
     turns = history_data.get("turns", [])
     total_turns = len(turns)
     json_payload = json.dumps(history_data)
+    replays_json = json.dumps(available_replays or [])
 
     html_template = f"""<!DOCTYPE html>
 <html lang="en">
@@ -66,17 +124,19 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
         header {{
             background: var(--bg-secondary);
             border-bottom: 1px solid var(--border-color);
-            padding: 10px 20px;
+            padding: 8px 18px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             z-index: 10;
+            gap: 12px;
         }}
 
         .header-title {{
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
+            flex-shrink: 0;
         }}
 
         .civ-badge {{
@@ -85,19 +145,43 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
             font-weight: 700;
             padding: 4px 10px;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 13px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }}
 
-        .directive-tag {{
+        .replay-picker-wrap {{
+            display: flex;
+            align-items: center;
+            gap: 6px;
             font-size: 13px;
             color: var(--text-muted);
+        }}
+
+        select.replay-select {{
             background: var(--bg-card);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
             padding: 4px 10px;
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+            max-width: 320px;
+        }}
+
+        select.replay-select:focus {{
+            border-color: var(--accent-gold);
+        }}
+
+        .directive-tag {{
+            font-size: 12px;
+            color: var(--text-muted);
+            background: var(--bg-card);
+            padding: 4px 8px;
             border-radius: 4px;
             border: 1px solid var(--border-color);
-            max-width: 400px;
+            max-width: 320px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -105,17 +189,18 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
 
         .stats-ticker {{
             display: flex;
-            gap: 16px;
-            font-size: 14px;
+            gap: 12px;
+            font-size: 13px;
             font-weight: 500;
+            flex-shrink: 0;
         }}
 
         .stat-item {{
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             background: var(--bg-card);
-            padding: 4px 10px;
+            padding: 3px 8px;
             border-radius: 6px;
             border: 1px solid var(--border-color);
         }}
@@ -200,16 +285,16 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
         }}
 
         .sidebar-section {{
-            padding: 16px;
+            padding: 14px 16px;
             border-bottom: 1px solid var(--border-color);
         }}
 
         .sidebar-section h3 {{
-            font-size: 13px;
+            font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: var(--text-muted);
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -219,7 +304,7 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 12px;
+            padding: 10px 12px;
             font-size: 13px;
             line-height: 1.4;
         }}
@@ -234,7 +319,7 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 10px 12px;
+            padding: 8px 12px;
             display: flex;
             flex-direction: column;
             gap: 6px;
@@ -264,16 +349,16 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
         .log-container {{
             flex: 1;
             overflow-y: auto;
-            padding: 12px 16px;
+            padding: 10px 16px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
             font-size: 12px;
         }}
 
         .log-entry {{
             background: var(--bg-card);
-            padding: 8px 10px;
+            padding: 6px 10px;
             border-radius: 6px;
             border-left: 3px solid var(--accent-gold);
             line-height: 1.3;
@@ -290,7 +375,7 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
         footer {{
             background: var(--bg-secondary);
             border-top: 1px solid var(--border-color);
-            padding: 12px 24px;
+            padding: 10px 20px;
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -299,7 +384,7 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
         .timeline-controls {{
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 14px;
         }}
 
         .btn-group {{
@@ -313,8 +398,8 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
             color: var(--text-main);
             border: 1px solid var(--border-color);
             border-radius: 6px;
-            padding: 6px 14px;
-            font-size: 14px;
+            padding: 5px 12px;
+            font-size: 13px;
             font-weight: 500;
             cursor: pointer;
             display: flex;
@@ -358,10 +443,10 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
         }}
 
         .turn-display {{
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 700;
             color: var(--accent-gold);
-            min-width: 90px;
+            min-width: 110px;
             text-align: right;
         }}
 
@@ -400,8 +485,16 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
 
     <header>
         <div class="header-title">
-            <span class="civ-badge">{civ_name}</span>
-            <span class="directive-tag" title="{directive}">🎯 {directive}</span>
+            <span class="civ-badge" id="civ-badge">{civ_name}</span>
+            
+            <div class="replay-picker-wrap">
+                <label for="replay-select">📁 Match:</label>
+                <select id="replay-select" class="replay-select">
+                    <!-- Populated dynamically -->
+                </select>
+            </div>
+
+            <span class="directive-tag" id="header-directive" title="{directive}">🎯 {directive}</span>
         </div>
 
         <div class="stats-ticker">
@@ -468,7 +561,7 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
 
             <div class="slider-container">
                 <input type="range" id="turn-slider" min="0" max="{max(0, total_turns-1)}" value="0">
-                <div class="turn-display" id="turn-indicator">Turn 0 / {max(0, total_turns-1)}</div>
+                <div class="turn-display" id="turn-indicator">Turn 0 (1/{total_turns})</div>
             </div>
 
             <div class="btn-group">
@@ -490,8 +583,9 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
     </div>
 
     <script>
-        const REPLAY_DATA = {json_payload};
-        const turnsData = REPLAY_DATA.turns || [];
+        let currentReplay = {json_payload};
+        const availableReplays = {replays_json};
+        let turnsData = currentReplay.turns || [];
         let currentTurnIdx = 0;
         let isPlaying = false;
         let playbackSpeed = 1.0;
@@ -509,6 +603,52 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
         let isDragging = false;
         let startDragX = 0;
         let startDragY = 0;
+
+        // Populate Replay Selector
+        const replaySelect = document.getElementById("replay-select");
+        if (availableReplays.length > 0) {{
+            replaySelect.innerHTML = "";
+            availableReplays.forEach((rep, idx) => {{
+                const opt = document.createElement("option");
+                opt.value = rep.filename;
+                opt.innerText = `${{rep.civ}} - ${{rep.turns_count}} turns (${{rep.modified}})`;
+                replaySelect.appendChild(opt);
+            }});
+        }} else {{
+            replaySelect.innerHTML = `<option value="">Current Match (${{turnsData.length}} turns)</option>`;
+        }}
+
+        replaySelect.addEventListener("change", async (e) => {{
+            const selectedFilename = e.target.value;
+            if (!selectedFilename) return;
+            try {{
+                const resp = await fetch(`/api/replay?file=${{encodeURIComponent(selectedFilename)}}`);
+                if (resp.ok) {{
+                    const newReplayData = await resp.json();
+                    loadNewReplay(newReplayData);
+                }}
+            }} catch (err) {{
+                console.warn("Could not load replay via API (static mode):", err);
+            }}
+        }});
+
+        function loadNewReplay(newReplay) {{
+            currentReplay = newReplay;
+            turnsData = currentReplay.turns || [];
+            
+            document.getElementById("civ-badge").innerText = currentReplay.civ || "Unknown";
+            document.getElementById("header-directive").innerText = "🎯 " + (currentReplay.directive || "Balanced Strategy");
+            document.getElementById("header-directive").title = currentReplay.directive || "Balanced Strategy";
+            
+            const slider = document.getElementById("turn-slider");
+            slider.min = 0;
+            slider.max = Math.max(0, turnsData.length - 1);
+            slider.value = 0;
+
+            if (isPlaying) togglePlay();
+            currentTurnIdx = 0;
+            updateTurn(0);
+        }}
 
         function resizeCanvas() {{
             canvas.width = mapWrap.clientWidth;
@@ -590,7 +730,6 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
                 const loc = c.location || [0, 0];
                 const pos = hexToPixel(loc[0], loc[1]);
                 
-                // City territory circle / banner
                 ctx.beginPath();
                 ctx.arc(pos.x, pos.y, hexSize * 0.7, 0, Math.PI * 2);
                 ctx.fillStyle = "rgba(245, 158, 11, 0.85)";
@@ -788,7 +927,6 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
             const sciences = turnsData.map(t => (t.stats && t.stats.science_per_turn) || 0);
             const maxVal = Math.max(...scores, ...sciences, 50);
 
-            // Draw line helper
             function drawLine(data, color, label) {{
                 if (data.length < 2) return;
                 cCtx.beginPath();
@@ -807,7 +945,6 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
             drawLine(scores, "#f59e0b", "Score");
             drawLine(sciences, "#38bdf8", "Science / Turn");
 
-            // Legend
             cCtx.font = "bold 12px sans-serif";
             cCtx.fillStyle = "#f59e0b";
             cCtx.fillText("— Score", 20, 25);
@@ -823,43 +960,79 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
 </html>"""
     return html_template
 
-def start_replay_server(replay_file: str, port: int = 8000, open_browser: bool = True):
+def start_replay_server(target_file: Optional[str] = None, port: int = 8000, open_browser: bool = True):
     """
-    Loads match history and serves the interactive replay dashboard over a local HTTP server.
+    Starts local replay HTTP server with dynamic API endpoints and multi-replay switching.
     """
-    if not os.path.exists(replay_file):
-        print(f"Error: Replay history file '{replay_file}' not found.")
-        print("Run a match first with 'python3 unciv_agent.py --civ Rome --turns 10' to record a replay!")
+    replays = get_available_replays("replays")
+    
+    if target_file and os.path.exists(target_file):
+        active_filepath = os.path.abspath(target_file)
+    elif replays:
+        active_filepath = replays[0]["path"]
+    else:
+        print("No replay files found in 'replays/' or workspace.")
+        print("Run a match first with 'python3 unciv_agent.py --civ Rome --turns 10'!")
         return
 
-    with open(replay_file, "r", encoding="utf-8") as f:
+    with open(active_filepath, "r", encoding="utf-8") as f:
         history_data = json.load(f)
 
-    html_content = generate_replay_html(history_data)
+    html_content = generate_replay_html(history_data, replays)
     output_html_path = os.path.abspath("replay.html")
     with open(output_html_path, "w", encoding="utf-8") as out:
         out.write(html_content)
 
-    print(f"Compiled standalone replay dashboard to: {output_html_path}")
+    print(f"Loaded most recent replay: {os.path.basename(active_filepath)} ({len(history_data.get('turns', []))} turns)")
+    print(f"Found {len(replays)} total replay file(s) available in dropdown switcher.")
 
-    class ReplayHandler(http.server.SimpleHTTPRequestHandler):
+    class ReplayMultiHandler(http.server.SimpleHTTPRequestHandler):
         def do_GET(self):
-            if self.path == "/" or self.path == "/replay" or self.path == "/replay.html":
+            parsed = urllib.parse.urlparse(self.path)
+            
+            if parsed.path in ("/", "/replay", "/replay.html"):
+                # Regenerate fresh HTML with newest replay scan
+                fresh_replays = get_available_replays("replays")
+                content = generate_replay_html(history_data, fresh_replays)
                 self.send_response(200)
                 self.send_header("Content-type", "text/html; charset=utf-8")
                 self.end_headers()
-                self.wfile.write(html_content.encode("utf-8"))
+                self.wfile.write(content.encode("utf-8"))
+
+            elif parsed.path == "/api/replays":
+                fresh_replays = get_available_replays("replays")
+                self.send_response(200)
+                self.send_header("Content-type", "application/json; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(json.dumps(fresh_replays).encode("utf-8"))
+
+            elif parsed.path == "/api/replay":
+                query = urllib.parse.parse_qs(parsed.query)
+                req_file = query.get("file", [""])[0]
+                
+                # Look in replays/ or root
+                target = os.path.join("replays", req_file) if not os.path.exists(req_file) else req_file
+                if os.path.exists(target):
+                    with open(target, "r", encoding="utf-8") as rf:
+                        rep_data = rf.read()
+                    self.send_response(200)
+                    self.send_header("Content-type", "application/json; charset=utf-8")
+                    self.end_headers()
+                    self.wfile.write(rep_data.encode("utf-8"))
+                else:
+                    self.send_response(404)
+                    self.end_headers()
             else:
                 super().do_GET()
 
     url = f"http://127.0.0.1:{port}"
-    print(f"Serving interactive replay dashboard at: {url}")
+    print(f"Serving replay dashboard at: {url}")
     print("Press Ctrl+C to stop the replay server.")
 
     if open_browser:
         threading.Timer(0.5, lambda: webbrowser.open(url)).start()
 
-    with socketserver.TCPServer(("127.0.0.1", port), ReplayHandler) as httpd:
+    with socketserver.TCPServer(("127.0.0.1", port), ReplayMultiHandler) as httpd:
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
@@ -867,26 +1040,28 @@ def start_replay_server(replay_file: str, port: int = 8000, open_browser: bool =
 
 def main():
     parser = argparse.ArgumentParser(description="Unciv AI Interactive Browser Replay Dashboard")
-    parser.add_argument("--file", type=str, default="replay_history.json", help="Replay history JSON file to load (default: replay_history.json)")
+    parser.add_argument("--file", type=str, default="", help="Specific replay JSON file to load (default: most recent file in replays/)")
     parser.add_argument("--port", type=int, default=8000, help="Port to serve replay dashboard on (default: 8000)")
     parser.add_argument("--no-browser", action="store_true", help="Do not automatically open browser")
-    parser.add_argument("--export-only", action="store_true", help="Only export standalone replay.html without starting server")
+    parser.add_argument("--export-only", action="store_true", help="Export standalone replay.html without starting server")
 
     args = parser.parse_args()
 
     if args.export_only:
-        if not os.path.exists(args.file):
-            print(f"Error: '{args.file}' does not exist.")
+        replays = get_available_replays("replays")
+        target_path = args.file if args.file and os.path.exists(args.file) else (replays[0]["path"] if replays else "replay_history.json")
+        if not os.path.exists(target_path):
+            print("Error: No replay files found.")
             return
-        with open(args.file, "r", encoding="utf-8") as f:
+        with open(target_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        html = generate_replay_html(data)
+        html = generate_replay_html(data, replays)
         out_path = os.path.abspath("replay.html")
         with open(out_path, "w", encoding="utf-8") as out:
             out.write(html)
         print(f"Successfully exported standalone replay dashboard: {out_path}")
     else:
-        start_replay_server(replay_file=args.file, port=args.port, open_browser=not args.no_browser)
+        start_replay_server(target_file=args.file, port=args.port, open_browser=not args.no_browser)
 
 if __name__ == "__main__":
     main()

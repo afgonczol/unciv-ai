@@ -1,0 +1,1003 @@
+{
+  "civ": "Rome",
+  "directive": "Focus on science and expand rapidly",
+  "total_turns": 4,
+  "recorded_at": "2026-08-21T08:58:10.046518",
+  "turns": [
+    {
+      "turn": 0,
+      "civ_name": "Rome",
+      "stats": {
+        "gold": 0,
+        "gold_per_turn": 0.0,
+        "science_per_turn": 0.0,
+        "culture_per_turn": 0.0,
+        "faith_per_turn": 0.0,
+        "happiness": 9,
+        "score": 4
+      },
+      "tech": {
+        "current_tech": "None",
+        "researched_techs": [
+          "Agriculture"
+        ],
+        "researchable_techs": [
+          {
+            "name": "Pottery",
+            "cost": 22,
+            "turns": "\u221e",
+            "prerequisites": [
+              "Agriculture"
+            ]
+          },
+          {
+            "name": "Animal Husbandry",
+            "cost": 22,
+            "turns": "\u221e",
+            "prerequisites": [
+              "Agriculture"
+            ]
+          },
+          {
+            "name": "Archery",
+            "cost": 22,
+            "turns": "\u221e",
+            "prerequisites": [
+              "Agriculture"
+            ]
+          },
+          {
+            "name": "Mining",
+            "cost": 22,
+            "turns": "\u221e",
+            "prerequisites": [
+              "Agriculture"
+            ]
+          }
+        ]
+      },
+      "policies": {
+        "adopted_policies": [],
+        "adoptable_policies": [
+          "Tradition",
+          "Liberty",
+          "Honor",
+          "Piety",
+          "Patronage",
+          "Commerce",
+          "Rationalism",
+          "Freedom",
+          "Autocracy",
+          "Order"
+        ],
+        "culture_needed": 15
+      },
+      "cities": [],
+      "units": [
+        {
+          "id": 1,
+          "name": "Settler",
+          "location": [
+            -1,
+            -8
+          ],
+          "health": 100,
+          "max_health": 100,
+          "movement": 2.0,
+          "max_movement": 2,
+          "is_military": false,
+          "is_civilian": true,
+          "is_idle": true,
+          "is_fortified": false,
+          "is_sleeping": false,
+          "available_actions": [
+            "move",
+            "found_city",
+            "fortify",
+            "sleep",
+            "disband"
+          ]
+        },
+        {
+          "id": 2,
+          "name": "Warrior",
+          "location": [
+            -1,
+            -8
+          ],
+          "health": 100,
+          "max_health": 100,
+          "movement": 2.0,
+          "max_movement": 2,
+          "is_military": true,
+          "is_civilian": false,
+          "is_idle": true,
+          "is_fortified": false,
+          "is_sleeping": false,
+          "available_actions": [
+            "move",
+            "attack",
+            "fortify",
+            "sleep",
+            "disband"
+          ]
+        },
+        {
+          "id": 2,
+          "name": "Warrior",
+          "location": [
+            -1,
+            -8
+          ],
+          "health": 100,
+          "max_health": 100,
+          "movement": 2.0,
+          "max_movement": 2,
+          "is_military": true,
+          "is_civilian": false,
+          "is_idle": true,
+          "is_fortified": false,
+          "is_sleeping": false,
+          "available_actions": [
+            "move",
+            "attack",
+            "fortify",
+            "sleep",
+            "disband"
+          ]
+        },
+        {
+          "id": 1,
+          "name": "Settler",
+          "location": [
+            -1,
+            -8
+          ],
+          "health": 100,
+          "max_health": 100,
+          "movement": 2.0,
+          "max_movement": 2,
+          "is_military": false,
+          "is_civilian": true,
+          "is_idle": true,
+          "is_fortified": false,
+          "is_sleeping": false,
+          "available_actions": [
+            "move",
+            "found_city",
+            "fortify",
+            "sleep",
+            "disband"
+          ]
+        }
+      ],
+      "map": {},
+      "advisor": {
+        "recommended_focus": "Science",
+        "threat_level": null,
+        "alerts": []
+      },
+      "plan": {
+        "reasoning": "Advisor heuristic execution focusing on Science.",
+        "choose_tech": "Pottery",
+        "adopt_policy": null,
+        "city_actions": [],
+        "unit_actions": [
+          {
+            "unit_id": 1,
+            "action": "found_city"
+          },
+          {
+            "unit_id": 2,
+            "action": "move",
+            "target_x": 0,
+            "target_y": -8
+          },
+          {
+            "unit_id": 2,
+            "action": "move",
+            "target_x": 0,
+            "target_y": -8
+          },
+          {
+            "unit_id": 1,
+            "action": "found_city"
+          }
+        ],
+        "diplomacy": []
+      },
+      "execution": [
+        "Researched: Pottery (Now researching Pottery)",
+        "Unit (ID 1): City founded: Rome at (-1, -8)",
+        "Unit (ID 2): Unit Warrior moved towards (0, -8)",
+        "Unit (ID 2): Unit Warrior moved towards (0, -8)",
+        "Unit (ID 1): Turn advanced (reconnected after suspend)"
+      ],
+      "notifications": []
+    },
+    {
+      "turn": 1,
+      "civ_name": "Rome",
+      "stats": {
+        "gold": 5,
+        "gold_per_turn": 5.0,
+        "science_per_turn": 5.0,
+        "culture_per_turn": 1.0,
+        "faith_per_turn": 0.0,
+        "happiness": 1,
+        "score": 60
+      },
+      "tech": {
+        "current_tech": "Pottery",
+        "turns_to_finish": "4",
+        "science_progress": 4,
+        "science_cost": 24,
+        "researched_techs": [
+          "Agriculture"
+        ],
+        "researchable_techs": [
+          {
+            "name": "Pottery",
+            "cost": 24,
+            "turns": "4",
+            "prerequisites": [
+              "Agriculture"
+            ]
+          },
+          {
+            "name": "Animal Husbandry",
+            "cost": 24,
+            "turns": "5",
+            "prerequisites": [
+              "Agriculture"
+            ]
+          },
+          {
+            "name": "Archery",
+            "cost": 24,
+            "turns": "5",
+            "prerequisites": [
+              "Agriculture"
+            ]
+          },
+          {
+            "name": "Mining",
+            "cost": 24,
+            "turns": "5",
+            "prerequisites": [
+              "Agriculture"
+            ]
+          }
+        ]
+      },
+      "policies": {
+        "adopted_policies": [],
+        "adoptable_policies": [
+          "Tradition",
+          "Liberty",
+          "Honor",
+          "Piety",
+          "Patronage",
+          "Commerce",
+          "Rationalism",
+          "Freedom",
+          "Autocracy",
+          "Order"
+        ],
+        "culture_needed": 15
+      },
+      "cities": [
+        {
+          "name": "Rome",
+          "location": [
+            -1,
+            -8
+          ],
+          "population": 1,
+          "health": 200,
+          "max_health": 200,
+          "defense": 2.5,
+          "food_stored": 2,
+          "food_needed": 10,
+          "food_per_turn": 2.0,
+          "production_per_turn": 4.0,
+          "gold_per_turn": 5.0,
+          "science_per_turn": 4.0,
+          "culture_per_turn": 1.0,
+          "faith_per_turn": 0.0,
+          "current_construction": "",
+          "queue": [],
+          "buildable_units": [
+            "Worker (70p)",
+            "Scout (25p)",
+            "Warrior (40p)",
+            "Warrior (40p)",
+            "Warrior (40p)",
+            "Warrior (40p)"
+          ],
+          "buildable_buildings": [
+            "Monument (40p)"
+          ]
+        },
+        {
+          "name": "Antium",
+          "location": [
+            -1,
+            -8
+          ],
+          "population": 1,
+          "health": 200,
+          "max_health": 200,
+          "defense": 0.0,
+          "food_stored": 0,
+          "food_needed": 10,
+          "food_per_turn": 0.0,
+          "production_per_turn": 2.0,
+          "gold_per_turn": 0.0,
+          "science_per_turn": 1.0,
+          "culture_per_turn": 0.0,
+          "faith_per_turn": 0.0,
+          "current_construction": "",
+          "queue": [],
+          "buildable_units": [
+            "Worker (70p)",
+            "Scout (25p)",
+            "Warrior (40p)",
+            "Warrior (40p)",
+            "Warrior (40p)",
+            "Warrior (40p)"
+          ],
+          "buildable_buildings": [
+            "Monument (40p)"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "id": 2,
+          "name": "Warrior",
+          "location": [
+            -1,
+            -8
+          ],
+          "health": 100,
+          "max_health": 100,
+          "movement": 2.0,
+          "max_movement": 2,
+          "is_military": true,
+          "is_civilian": false,
+          "is_idle": true,
+          "is_fortified": false,
+          "is_sleeping": false,
+          "available_actions": [
+            "move",
+            "attack",
+            "fortify",
+            "sleep",
+            "disband"
+          ]
+        },
+        {
+          "id": 2,
+          "name": "Warrior",
+          "location": [
+            -1,
+            -8
+          ],
+          "health": 100,
+          "max_health": 100,
+          "movement": 2.0,
+          "max_movement": 2,
+          "is_military": true,
+          "is_civilian": false,
+          "is_idle": true,
+          "is_fortified": false,
+          "is_sleeping": false,
+          "available_actions": [
+            "move",
+            "attack",
+            "fortify",
+            "sleep",
+            "disband"
+          ]
+        },
+        {
+          "id": 1,
+          "name": "Settler",
+          "location": [
+            -1,
+            -8
+          ],
+          "health": 100,
+          "max_health": 100,
+          "movement": 2.0,
+          "max_movement": 2,
+          "is_military": false,
+          "is_civilian": true,
+          "is_idle": true,
+          "is_fortified": false,
+          "is_sleeping": false,
+          "available_actions": [
+            "move",
+            "found_city",
+            "fortify",
+            "sleep",
+            "disband"
+          ]
+        }
+      ],
+      "map": {},
+      "advisor": {
+        "recommended_focus": "Science",
+        "threat_level": null,
+        "alerts": []
+      },
+      "plan": {
+        "reasoning": "Advisor heuristic execution focusing on Science.",
+        "choose_tech": null,
+        "adopt_policy": null,
+        "city_actions": [
+          {
+            "city_name": "Rome",
+            "action": "set_production",
+            "param": "Monument"
+          },
+          {
+            "city_name": "Antium",
+            "action": "set_production",
+            "param": "Monument"
+          }
+        ],
+        "unit_actions": [
+          {
+            "unit_id": 2,
+            "action": "move",
+            "target_x": 0,
+            "target_y": -8
+          },
+          {
+            "unit_id": 2,
+            "action": "move",
+            "target_x": 0,
+            "target_y": -8
+          },
+          {
+            "unit_id": 1,
+            "action": "move",
+            "target_x": 1,
+            "target_y": -7
+          }
+        ],
+        "diplomacy": []
+      },
+      "execution": [
+        "City [Rome]: Set production in Rome to Monument",
+        "City [Antium]: Set production in Antium to Monument",
+        "Unit (ID 2): Unit Warrior moved towards (0, -8)",
+        "Unit (ID 2): Unit Warrior moved towards (0, -8)",
+        "Unit (ID 1): Unit Settler moved towards (1, -7)"
+      ],
+      "notifications": []
+    },
+    {
+      "turn": 2,
+      "civ_name": "Rome",
+      "stats": {
+        "gold": 10,
+        "gold_per_turn": 5.0,
+        "science_per_turn": 5.0,
+        "culture_per_turn": 1.0,
+        "faith_per_turn": 0.0,
+        "happiness": 1,
+        "score": 60
+      },
+      "tech": {
+        "current_tech": "Pottery",
+        "turns_to_finish": "3",
+        "science_progress": 9,
+        "science_cost": 24,
+        "researched_techs": [
+          "Agriculture"
+        ],
+        "researchable_techs": [
+          {
+            "name": "Pottery",
+            "cost": 24,
+            "turns": "3",
+            "prerequisites": [
+              "Agriculture"
+            ]
+          },
+          {
+            "name": "Animal Husbandry",
+            "cost": 24,
+            "turns": "5",
+            "prerequisites": [
+              "Agriculture"
+            ]
+          },
+          {
+            "name": "Archery",
+            "cost": 24,
+            "turns": "5",
+            "prerequisites": [
+              "Agriculture"
+            ]
+          },
+          {
+            "name": "Mining",
+            "cost": 24,
+            "turns": "5",
+            "prerequisites": [
+              "Agriculture"
+            ]
+          }
+        ]
+      },
+      "policies": {
+        "adopted_policies": [],
+        "adoptable_policies": [
+          "Tradition",
+          "Liberty",
+          "Honor",
+          "Piety",
+          "Patronage",
+          "Commerce",
+          "Rationalism",
+          "Freedom",
+          "Autocracy",
+          "Order"
+        ],
+        "culture_needed": 15
+      },
+      "cities": [
+        {
+          "name": "Rome",
+          "location": [
+            -1,
+            -8
+          ],
+          "population": 1,
+          "health": 200,
+          "max_health": 200,
+          "defense": 2.5,
+          "food_stored": 4,
+          "food_needed": 10,
+          "food_per_turn": 2.0,
+          "production_per_turn": 4.0,
+          "gold_per_turn": 5.0,
+          "science_per_turn": 4.0,
+          "culture_per_turn": 1.0,
+          "faith_per_turn": 0.0,
+          "current_construction": "Monument",
+          "turns_to_finish": 6,
+          "queue": [
+            "Monument"
+          ],
+          "buildable_units": [
+            "Worker (70p)",
+            "Scout (25p)",
+            "Warrior (40p)",
+            "Warrior (40p)",
+            "Warrior (40p)",
+            "Warrior (40p)"
+          ],
+          "buildable_buildings": [
+            "Monument (40p)"
+          ]
+        },
+        {
+          "name": "Antium",
+          "location": [
+            -1,
+            -8
+          ],
+          "population": 1,
+          "health": 200,
+          "max_health": 200,
+          "defense": 0.0,
+          "food_stored": 0,
+          "food_needed": 10,
+          "food_per_turn": 0.0,
+          "production_per_turn": 2.0,
+          "gold_per_turn": 0.0,
+          "science_per_turn": 1.0,
+          "culture_per_turn": 0.0,
+          "faith_per_turn": 0.0,
+          "current_construction": "Monument",
+          "turns_to_finish": 12,
+          "queue": [
+            "Monument"
+          ],
+          "buildable_units": [
+            "Worker (70p)",
+            "Scout (25p)",
+            "Warrior (40p)",
+            "Warrior (40p)",
+            "Warrior (40p)",
+            "Warrior (40p)"
+          ],
+          "buildable_buildings": [
+            "Monument (40p)"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "id": 2,
+          "name": "Warrior",
+          "location": [
+            -1,
+            -8
+          ],
+          "health": 100,
+          "max_health": 100,
+          "movement": 2.0,
+          "max_movement": 2,
+          "is_military": true,
+          "is_civilian": false,
+          "is_idle": true,
+          "is_fortified": false,
+          "is_sleeping": false,
+          "available_actions": [
+            "move",
+            "attack",
+            "fortify",
+            "sleep",
+            "disband"
+          ]
+        },
+        {
+          "id": 2,
+          "name": "Warrior",
+          "location": [
+            -1,
+            -8
+          ],
+          "health": 100,
+          "max_health": 100,
+          "movement": 2.0,
+          "max_movement": 2,
+          "is_military": true,
+          "is_civilian": false,
+          "is_idle": true,
+          "is_fortified": false,
+          "is_sleeping": false,
+          "available_actions": [
+            "move",
+            "attack",
+            "fortify",
+            "sleep",
+            "disband"
+          ]
+        },
+        {
+          "id": 1,
+          "name": "Settler",
+          "location": [
+            0,
+            -7
+          ],
+          "health": 100,
+          "max_health": 100,
+          "movement": 2.0,
+          "max_movement": 2,
+          "is_military": false,
+          "is_civilian": true,
+          "is_idle": true,
+          "is_fortified": false,
+          "is_sleeping": false,
+          "available_actions": [
+            "move",
+            "found_city",
+            "fortify",
+            "sleep",
+            "disband"
+          ]
+        }
+      ],
+      "map": {},
+      "advisor": {
+        "recommended_focus": "Science",
+        "threat_level": null,
+        "alerts": []
+      },
+      "plan": {
+        "reasoning": "Advisor heuristic execution focusing on Science.",
+        "choose_tech": null,
+        "adopt_policy": null,
+        "city_actions": [],
+        "unit_actions": [
+          {
+            "unit_id": 2,
+            "action": "move",
+            "target_x": 0,
+            "target_y": -8
+          },
+          {
+            "unit_id": 2,
+            "action": "move",
+            "target_x": 0,
+            "target_y": -8
+          },
+          {
+            "unit_id": 1,
+            "action": "found_city"
+          }
+        ],
+        "diplomacy": []
+      },
+      "execution": [
+        "Unit (ID 2): Unit Warrior moved towards (0, -8)",
+        "Unit (ID 2): Unit Warrior moved towards (0, -8)",
+        "Unit (ID 1): City founded: Cumae at (0, -7)"
+      ],
+      "notifications": []
+    },
+    {
+      "turn": 3,
+      "civ_name": "Rome",
+      "stats": {
+        "gold": 18,
+        "gold_per_turn": 8.0,
+        "science_per_turn": 6.0,
+        "culture_per_turn": 1.0,
+        "faith_per_turn": 0.0,
+        "happiness": -3,
+        "score": 89
+      },
+      "tech": {
+        "current_tech": "Pottery",
+        "turns_to_finish": "2",
+        "science_progress": 15,
+        "science_cost": 25,
+        "researched_techs": [
+          "Agriculture"
+        ],
+        "researchable_techs": [
+          {
+            "name": "Pottery",
+            "cost": 25,
+            "turns": "2",
+            "prerequisites": [
+              "Agriculture"
+            ]
+          },
+          {
+            "name": "Animal Husbandry",
+            "cost": 25,
+            "turns": "5",
+            "prerequisites": [
+              "Agriculture"
+            ]
+          },
+          {
+            "name": "Archery",
+            "cost": 25,
+            "turns": "5",
+            "prerequisites": [
+              "Agriculture"
+            ]
+          },
+          {
+            "name": "Mining",
+            "cost": 25,
+            "turns": "5",
+            "prerequisites": [
+              "Agriculture"
+            ]
+          }
+        ]
+      },
+      "policies": {
+        "adopted_policies": [],
+        "adoptable_policies": [
+          "Tradition",
+          "Liberty",
+          "Honor",
+          "Piety",
+          "Patronage",
+          "Commerce",
+          "Rationalism",
+          "Freedom",
+          "Autocracy",
+          "Order"
+        ],
+        "culture_needed": 20
+      },
+      "cities": [
+        {
+          "name": "Rome",
+          "location": [
+            -1,
+            -8
+          ],
+          "population": 1,
+          "health": 200,
+          "max_health": 200,
+          "defense": 2.5,
+          "food_stored": 5,
+          "food_needed": 10,
+          "food_per_turn": 0.5,
+          "production_per_turn": 4.0,
+          "gold_per_turn": 5.0,
+          "science_per_turn": 4.0,
+          "culture_per_turn": 1.0,
+          "faith_per_turn": 0.0,
+          "current_construction": "Monument",
+          "turns_to_finish": 5,
+          "queue": [
+            "Monument"
+          ],
+          "buildable_units": [
+            "Worker (70p)",
+            "Scout (25p)",
+            "Warrior (40p)",
+            "Warrior (40p)",
+            "Warrior (40p)",
+            "Warrior (40p)"
+          ],
+          "buildable_buildings": [
+            "Monument (40p)"
+          ]
+        },
+        {
+          "name": "Antium",
+          "location": [
+            -1,
+            -8
+          ],
+          "population": 1,
+          "health": 200,
+          "max_health": 200,
+          "defense": 0.0,
+          "food_stored": 0,
+          "food_needed": 10,
+          "food_per_turn": 0.0,
+          "production_per_turn": 2.0,
+          "gold_per_turn": 0.0,
+          "science_per_turn": 1.0,
+          "culture_per_turn": 0.0,
+          "faith_per_turn": 0.0,
+          "current_construction": "Monument",
+          "turns_to_finish": 11,
+          "queue": [
+            "Monument"
+          ],
+          "buildable_units": [
+            "Worker (70p)",
+            "Scout (25p)",
+            "Warrior (40p)",
+            "Warrior (40p)",
+            "Warrior (40p)",
+            "Warrior (40p)"
+          ],
+          "buildable_buildings": [
+            "Monument (40p)"
+          ]
+        },
+        {
+          "name": "Cumae",
+          "location": [
+            0,
+            -7
+          ],
+          "population": 1,
+          "health": 200,
+          "max_health": 200,
+          "defense": 0.0,
+          "food_stored": 1,
+          "food_needed": 10,
+          "food_per_turn": 0.75,
+          "production_per_turn": 1.0,
+          "gold_per_turn": 3.0,
+          "science_per_turn": 1.0,
+          "culture_per_turn": 0.0,
+          "faith_per_turn": 0.0,
+          "current_construction": "",
+          "queue": [],
+          "buildable_units": [
+            "Worker (70p)",
+            "Scout (25p)",
+            "Warrior (40p)",
+            "Warrior (40p)",
+            "Warrior (40p)",
+            "Warrior (40p)"
+          ],
+          "buildable_buildings": [
+            "Monument (40p)"
+          ]
+        }
+      ],
+      "units": [
+        {
+          "id": 2,
+          "name": "Warrior",
+          "location": [
+            -1,
+            -8
+          ],
+          "health": 100,
+          "max_health": 100,
+          "movement": 2.0,
+          "max_movement": 2,
+          "is_military": true,
+          "is_civilian": false,
+          "is_idle": true,
+          "is_fortified": false,
+          "is_sleeping": false,
+          "available_actions": [
+            "move",
+            "attack",
+            "fortify",
+            "sleep",
+            "disband"
+          ]
+        },
+        {
+          "id": 2,
+          "name": "Warrior",
+          "location": [
+            -1,
+            -8
+          ],
+          "health": 100,
+          "max_health": 100,
+          "movement": 2.0,
+          "max_movement": 2,
+          "is_military": true,
+          "is_civilian": false,
+          "is_idle": true,
+          "is_fortified": false,
+          "is_sleeping": false,
+          "available_actions": [
+            "move",
+            "attack",
+            "fortify",
+            "sleep",
+            "disband"
+          ]
+        }
+      ],
+      "map": {},
+      "advisor": {
+        "recommended_focus": "Science",
+        "threat_level": null,
+        "alerts": []
+      },
+      "plan": {
+        "reasoning": "Advisor heuristic execution focusing on Science.",
+        "choose_tech": null,
+        "adopt_policy": null,
+        "city_actions": [
+          {
+            "city_name": "Cumae",
+            "action": "set_production",
+            "param": "Monument"
+          }
+        ],
+        "unit_actions": [
+          {
+            "unit_id": 2,
+            "action": "move",
+            "target_x": 0,
+            "target_y": -8
+          },
+          {
+            "unit_id": 2,
+            "action": "move",
+            "target_x": 0,
+            "target_y": -8
+          }
+        ],
+        "diplomacy": []
+      },
+      "execution": [
+        "City [Cumae]: Set production in Cumae to Monument",
+        "Unit (ID 2): Unit Warrior moved towards (0, -8)",
+        "Unit (ID 2): Unit Warrior moved towards (0, -8)"
+      ],
+      "notifications": []
+    }
+  ]
+}
