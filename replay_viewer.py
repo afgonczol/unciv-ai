@@ -658,10 +658,12 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
             if (turnIdx < 0 || turnIdx >= turnsData.length) return;
             currentTurnIdx = turnIdx;
             document.getElementById("turn-slider").value = turnIdx;
-            document.getElementById("turn-indicator").innerText = `Turn ${{turnIdx}} / ${{turnsData.length - 1}}`;
 
             const data = turnsData[turnIdx];
             if (!data) return;
+
+            const actualTurnNum = (data && data.turn !== undefined) ? data.turn : turnIdx;
+            document.getElementById("turn-indicator").innerText = `Turn ${{actualTurnNum}} (${{turnIdx + 1}}/${{turnsData.length}})`;
 
             // Stats
             const stats = data.stats || {{}};
@@ -706,10 +708,21 @@ def generate_replay_html(history_data: Dict[str, Any]) -> str:
 
         // Playback Controls
         function togglePlay() {{
+            if (turnsData.length <= 1) {{
+                const toast = document.createElement("div");
+                toast.style.cssText = "position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#f59e0b;color:#000;padding:8px 16px;border-radius:6px;font-weight:600;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,0.5);";
+                toast.innerText = "Only 1 turn snapshot in this replay file. Run unciv_agent.py with --turns 10+ to record a multi-turn animation!";
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 4000);
+                return;
+            }}
             isPlaying = !isPlaying;
             const btn = document.getElementById("btn-play");
             if (isPlaying) {{
                 btn.innerText = "⏸ Pause";
+                if (currentTurnIdx >= turnsData.length - 1) {{
+                    currentTurnIdx = -1;
+                }}
                 playInterval = setInterval(() => {{
                     if (currentTurnIdx >= turnsData.length - 1) {{
                         togglePlay();

@@ -76,6 +76,14 @@ class UncivAgent:
         self.llm = llm_client
         self.record_file = record_file
         self.history: List[Dict[str, Any]] = []
+        if self.record_file and os.path.exists(self.record_file):
+            try:
+                with open(self.record_file, "r", encoding="utf-8") as rf:
+                    existing = json.load(rf)
+                    if isinstance(existing, dict) and "turns" in existing:
+                        self.history = existing["turns"]
+            except Exception:
+                pass
         self.scratchpad: Dict[str, Any] = {
             "grand_strategy": "",
             "active_military_campaign": "",
@@ -249,7 +257,14 @@ class UncivAgent:
             "execution": execution_log,
             "notifications": notifs
         }
-        self.history.append(snapshot)
+        # Upsert snapshot and sort history
+        existing_idx = next((i for i, s in enumerate(self.history) if s.get("turn") == turn_num), None)
+        if existing_idx is not None:
+            self.history[existing_idx] = snapshot
+        else:
+            self.history.append(snapshot)
+        self.history.sort(key=lambda s: s.get("turn", 0))
+
         if self.record_file:
             try:
                 with open(self.record_file, "w", encoding="utf-8") as rf:
