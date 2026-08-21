@@ -80,6 +80,15 @@ cd unciv-ai
 pip install -r requirements.txt
 ```
 
+### 1-Click Launchers (No typing required!)
+
+- **Windows**: Double-click **[`run_agent.bat`](file:///home/allen/AntiGravity%20Projects/unciv%20ai/run_agent.bat)**.
+- **Linux / macOS**: Run **[`./run_agent.sh`](file:///home/allen/AntiGravity%20Projects/unciv%20ai/run_agent.sh)**.
+
+A simple interactive menu will let you start new games, resume autosaves, launch the browser replay viewer, or run diagnostics with a single keypress!
+
+---
+
 ### 1. Run Diagnostics
 
 Verify your Python environment, Java JRE, bridge socket, and map generator:
