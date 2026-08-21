@@ -15,7 +15,7 @@ import urllib.request
 import urllib.error
 from typing import Dict, Any, List, Optional
 
-from unciv_engine import UncivEngine
+from unciv_engine import UncivEngine, UncivEngineError
 from strategic_advisor import StrategicAdvisor
 
 class LLMClient:
@@ -568,9 +568,9 @@ def main():
                 else:
                     raise e
     except KeyboardInterrupt:
-        print(f"\nGame paused by user after {turn_count} turns (saved to autosave.json and {args.record}).", flush=True)
+        print(f"\nGame paused by user after {turn_count} turns (saved to autosave.json and {record_path}).", flush=True)
     finally:
-        print(f"\nGame session completed! Replay data saved to '{args.record}'.", flush=True)
+        print(f"\nGame session completed! Replay data saved to '{record_path}'.", flush=True)
         engine.close()
 
 if __name__ == "__main__":

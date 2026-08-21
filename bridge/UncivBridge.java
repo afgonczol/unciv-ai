@@ -416,7 +416,18 @@ public class UncivBridge {
                     for (Notification n : player.getNotifications()) {
                         newNotifications.add(n.getText());
                     }
-                    player.getNotifications().clear();
+
+                    // Clear notifications across all civilizations to prevent memory buildup
+                    for (Civilization c : gameInfo.getCivilizations()) {
+                        try {
+                            c.getNotifications().clear();
+                        } catch (Throwable ignored) {}
+                    }
+
+                    // Periodic GC hygiene for long runs
+                    if (newTurn % 10 == 0) {
+                        System.gc();
+                    }
 
                     response.put("status", "ok");
                     response.put("old_turn", oldTurn);
