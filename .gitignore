@@ -1,0 +1,31 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+my_env/
+ENV/
+
+# Game runtime artifacts & temporary logs
+bridge_server.log
+autosave.json
+GameSettings.json
+*.log
+*.tmp
+
+# Unciv upstream source repository (build artifacts only needed Unciv.jar)
+unciv_repo/
+TestGame.java
+
+# IDE & OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
