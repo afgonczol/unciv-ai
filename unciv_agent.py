@@ -126,8 +126,10 @@ class UncivAgent:
                 "victory_type": v_type
             }
 
+        # Extract full world map topology for replay and centered map for terminal
+        full_map_res = self.engine.get_map(0, 0, -1)
         map_res = self.engine.get_map(0, 0, 6)
-        advisor_report = self.advisor.analyze(state, map_res)
+        advisor_report = self.advisor.analyze(state, full_map_res if full_map_res.get("tiles") else map_res)
 
         print(f"\n{'='*60}")
         print(f" TURN {turn_num} | Civilization: {civ_name} | Score: {state.get('stats', {}).get('score', 0)}")
@@ -264,7 +266,7 @@ class UncivAgent:
             "policies": state.get("policies", {}),
             "cities": state.get("cities", []),
             "units": state.get("units", []),
-            "map": map_res.get("map", {}) if isinstance(map_res, dict) else {},
+            "map": full_map_res if (isinstance(full_map_res, dict) and full_map_res.get("tiles")) else map_res,
             "advisor": {
                 "recommended_focus": advisor_report.get("recommended_focus"),
                 "threat_level": advisor_report.get("threat_level"),

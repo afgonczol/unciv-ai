@@ -687,19 +687,50 @@ def generate_replay_html(history_data: Dict[str, Any], available_replays: List[D
             }}
         }}
 
-        function getTerrainColor(terrain, features) {{
-            if (!terrain) return "#212121";
-            if (terrain.includes("Ocean")) return "#01579b";
-            if (terrain.includes("Coast") || terrain.includes("Water")) return "#0288d1";
-            if (terrain.includes("Mountain")) return "#455a64";
-            if (terrain.includes("Desert")) return "#d7ccc8";
-            if (terrain.includes("Tundra")) return "#90a4ae";
-            if (features && (features.includes("Forest") || features.includes("Jungle"))) return "#2e7d32";
-            if (features && features.includes("Hill")) return "#689f38";
-            if (terrain.includes("Grassland")) return "#558b2f";
-            if (terrain.includes("Plains")) return "#7cb342";
-            return "#4caf50";
+        function getTerrainColor(terrain, features, isHill, isExplored, isVisible) {{
+            if (!isExplored) return "#0c1015";
+            let baseCol = "#4caf50";
+            if (!terrain) baseCol = "#212121";
+            else if (terrain.includes("Ocean")) baseCol = "#0f2b48";
+            else if (terrain.includes("Coast") || terrain.includes("Water")) baseCol = "#1976d2";
+            else if (terrain.includes("Mountain")) baseCol = "#475569";
+            else if (terrain.includes("Desert")) baseCol = "#d4ac0d";
+            else if (terrain.includes("Tundra")) baseCol = "#78909c";
+            else if (terrain.includes("Snow") || terrain.includes("Ice")) baseCol = "#e2e8f0";
+            else if (terrain.includes("Grassland")) baseCol = "#2e7d32";
+            else if (terrain.includes("Plains")) baseCol = "#7cb342";
+
+            if (features) {{
+                if (features.includes("Forest") || features.includes("Jungle")) baseCol = "#1b5e20";
+                else if (features.includes("Flood plain") || features.includes("Flood Plains")) baseCol = "#558b2f";
+                else if (features.includes("Marsh")) baseCol = "#33691e";
+                else if (features.includes("Atoll")) baseCol = "#00838f";
+            }}
+
+            if (isHill && !terrain.includes("Mountain") && !terrain.includes("Water")) {{
+                baseCol = "#5c8d37";
+            }}
+
+            return baseCol;
         }}
+
+        function getResourceIcon(resource) {{
+            if (!resource) return "";
+            const map = {{
+                "Wheat": "🌾", "Iron": "⛏️", "Horses": "🐎", "Gems": "💎", "Gold": "🪙",
+                "Silver": "🥈", "Coal": "⬛", "Oil": "🛢️", "Aluminum": "⚙️", "Uranium": "☢️",
+                "Cattle": "🐄", "Sheep": "🐑", "Deer": "🦌", "Fish": "🐟", "Whale": "🐋",
+                "Crab": "🦀", "Cotton": "🧶", "Silk": "👘", "Sugar": "🍬", "Spices": "🌿",
+                "Wine": "🍷", "Marble": "🏛️", "Ivory": "🐘", "Furs": "🧥", "Dyes": "🎨",
+                "Copper": "🟤", "Salt": "🧂", "Truffles": "🍄", "Citrus": "🍊", "Banana": "🍌"
+            }};
+            for (let [k, icon] of Object.entries(map)) {{
+                if (resource.includes(k)) return icon;
+            }}
+            return "✨";
+        }}
+
+        let hoveredTile = null;
 
         function renderMap() {{
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -710,62 +741,198 @@ def generate_replay_html(history_data: Dict[str, Any], available_replays: List[D
             const cities = turn.cities || [];
             const units = turn.units || [];
 
-            // Draw hex tiles
+            // 1. Draw Hex Grid & Biomes
             tiles.forEach(t => {{
                 const pos = hexToPixel(t.x, t.y);
-                const col = getTerrainColor(t.terrain, t.features);
-                drawHexagon(pos.x, pos.y, hexSize, col, "rgba(0,0,0,0.35)", 1.5);
+                const isExplored = t.explored !== false;
+                const isVisible = t.visible !== false;
+                const col = getTerrainColor(t.terrain, t.features, t.is_hill, isExplored, isVisible);
+                
+                const strokeCol = isExplored ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.03)";
+                drawHexagon(pos.x, pos.y, hexSize, col, strokeCol, 1.2);
 
-                // Resource text
-                if (t.resource) {{
+                if (!isExplored) return;
+
+                // Fog of War overlay
+                if (!isVisible) {{
+                    drawHexagon(pos.x, pos.y, hexSize, "rgba(0,0,0,0.35)", null);
+                }}
+
+                // Mountain Peak 3D Rendering
+                if (t.terrain && t.terrain.includes("Mountain")) {{
+                    ctx.beginPath();
+                    ctx.moveTo(pos.x, pos.y - hexSize * 0.55);
+                    ctx.lineTo(pos.x + hexSize * 0.45, pos.y + hexSize * 0.4);
+                    ctx.lineTo(pos.x - hexSize * 0.45, pos.y + hexSize * 0.4);
+                    ctx.closePath();
+                    ctx.fillStyle = "#334155";
+                    ctx.fill();
+                    ctx.strokeStyle = "#1e293b";
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+
+                    // Snow cap on mountain peak
+                    ctx.beginPath();
+                    ctx.moveTo(pos.x, pos.y - hexSize * 0.55);
+                    ctx.lineTo(pos.x + hexSize * 0.15, pos.y - hexSize * 0.25);
+                    ctx.lineTo(pos.x - hexSize * 0.15, pos.y - hexSize * 0.25);
+                    ctx.closePath();
                     ctx.fillStyle = "#ffffff";
+                    ctx.fill();
+                }}
+
+                // Hills 3D contour ridges
+                if (t.is_hill && !t.terrain.includes("Mountain")) {{
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y + 4, hexSize * 0.35, Math.PI, 0);
+                    ctx.strokeStyle = "rgba(0,0,0,0.3)";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }}
+
+                // Forest / Jungle Canopy
+                if (t.features && (t.features.includes("Forest") || t.features.includes("Jungle"))) {{
                     ctx.font = "10px sans-serif";
                     ctx.textAlign = "center";
-                    ctx.fillText(t.resource.substring(0, 4), pos.x, pos.y + 12);
+                    ctx.fillText("🌲", pos.x, pos.y - 2);
+                }}
+
+                // River overlay
+                if (t.has_river) {{
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, hexSize * 0.85, 0, Math.PI * 2);
+                    ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }}
+
+                // Territory border
+                if (t.owner) {{
+                    drawHexagon(pos.x, pos.y, hexSize - 1, "transparent", "rgba(245, 158, 11, 0.6)", 2);
+                }}
+
+                // Resource Icon
+                if (t.resource) {{
+                    const icon = getResourceIcon(t.resource);
+                    ctx.font = "12px sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.fillText(icon, pos.x, pos.y + 12);
+                }}
+
+                // Natural Wonder Glowing Star
+                if (t.natural_wonder) {{
+                    drawHexagon(pos.x, pos.y, hexSize * 0.8, "transparent", "#a855f7", 2.5);
+                    ctx.font = "14px sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.fillText("⭐", pos.x, pos.y + 2);
+                }}
+
+                // Improvement Marker
+                if (t.improvement && !t.city) {{
+                    ctx.fillStyle = "rgba(255,255,255,0.75)";
+                    ctx.font = "9px sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.fillText(t.improvement.substring(0, 4), pos.x, pos.y - 12);
                 }}
             }});
 
-            // Draw cities
+            // 2. Draw Cities (Heraldic Badges)
             cities.forEach(c => {{
                 const loc = c.location || [0, 0];
                 const pos = hexToPixel(loc[0], loc[1]);
                 
                 ctx.beginPath();
-                ctx.arc(pos.x, pos.y, hexSize * 0.7, 0, Math.PI * 2);
-                ctx.fillStyle = "rgba(245, 158, 11, 0.85)";
+                ctx.arc(pos.x, pos.y, hexSize * 0.68, 0, Math.PI * 2);
+                ctx.fillStyle = "#d97706";
                 ctx.fill();
                 ctx.strokeStyle = "#ffffff";
                 ctx.lineWidth = 2;
                 ctx.stroke();
 
-                ctx.fillStyle = "#000000";
+                ctx.fillStyle = "#ffffff";
                 ctx.font = "bold 11px sans-serif";
                 ctx.textAlign = "center";
-                ctx.fillText("🏛️ " + c.name, pos.x, pos.y - 4);
-                ctx.font = "9px sans-serif";
-                ctx.fillText("Pop " + (c.population || 1), pos.x, pos.y + 8);
+                ctx.fillText("🏛️ " + c.name, pos.x, pos.y - 3);
+                ctx.font = "bold 9px sans-serif";
+                ctx.fillText("Pop " + (c.population || 1), pos.x, pos.y + 9);
             }});
 
-            // Draw units
+            // 3. Draw Units
             units.forEach(u => {{
                 const loc = u.location || [0, 0];
                 const pos = hexToPixel(loc[0], loc[1]);
                 const isMil = u.is_military;
                 
                 ctx.beginPath();
-                ctx.arc(pos.x + 8, pos.y + 8, 10, 0, Math.PI * 2);
-                ctx.fillStyle = isMil ? "#ef4444" : "#38bdf8";
+                ctx.arc(pos.x + 10, pos.y + 10, 11, 0, Math.PI * 2);
+                ctx.fillStyle = isMil ? "#ef4444" : "#0284c7";
                 ctx.fill();
                 ctx.strokeStyle = "#ffffff";
-                ctx.lineWidth = 1.5;
+                ctx.lineWidth = 2;
                 ctx.stroke();
 
                 ctx.fillStyle = "#ffffff";
                 ctx.font = "bold 9px sans-serif";
                 ctx.textAlign = "center";
-                ctx.fillText(isMil ? "u" : "s", pos.x + 8, pos.y + 11);
+                ctx.fillText(isMil ? "⚔️" : "🔨", pos.x + 10, pos.y + 13);
             }});
+
+            // 4. Highlight Hovered Tile
+            if (hoveredTile) {{
+                const hPos = hexToPixel(hoveredTile.x, hoveredTile.y);
+                drawHexagon(hPos.x, hPos.y, hexSize + 1, "rgba(245, 158, 11, 0.2)", "#f59e0b", 2.5);
+            }}
         }}
+
+        // Mouse Hover & Tooltip
+        mapWrap.addEventListener("mousemove", (e) => {{
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left - panX;
+            const mouseY = e.clientY - rect.top - panY;
+
+            // Approximate pixel to axial hex coord
+            const q = (Math.sqrt(3)/3 * mouseX - 1/3 * mouseY) / hexSize;
+            const r = (2/3 * mouseY) / hexSize;
+            const rx = Math.round(q);
+            const ry = Math.round(r);
+
+            if (turnsData.length === 0) return;
+            const turn = turnsData[currentTurnIdx];
+            const tiles = (turn.map && turn.map.tiles) ? turn.map.tiles : [];
+            const tile = tiles.find(t => t.x === rx && t.y === ry);
+
+            if (tile && tile.explored !== false) {{
+                hoveredTile = tile;
+                tooltip.style.display = "block";
+                tooltip.style.left = (e.clientX + 15) + "px";
+                tooltip.style.top = (e.clientY + 15) + "px";
+
+                let info = `<strong>Hex (${{tile.x}}, ${{tile.y}})</strong><br>`;
+                info += `Terrain: ${{tile.terrain || 'Plain'}}`;
+                if (tile.features && tile.features.length) info += ` (${{tile.features.join(', ')}})`;
+                if (tile.is_hill) info += ` [Hill]`;
+                info += `<br>`;
+                if (tile.resource) info += `Resource: ${{getResourceIcon(tile.resource)}} ${{tile.resource}}<br>`;
+                if (tile.improvement) info += `Improvement: ${{tile.improvement}}<br>`;
+                if (tile.natural_wonder) info += `Wonder: ⭐ ${{tile.natural_wonder}}<br>`;
+                if (tile.owner) info += `Territory: 🏛️ ${{tile.owner}}<br>`;
+                if (tile.city) info += `City: 🏛️ ${{tile.city}}<br>`;
+                if (tile.military_unit) info += `Military: ⚔️ ${{tile.military_unit}}<br>`;
+                if (tile.civilian_unit) info += `Civilian: 🔨 ${{tile.civilian_unit}}<br>`;
+
+                tooltip.innerHTML = info;
+            }} else {{
+                hoveredTile = null;
+                tooltip.style.display = "none";
+            }}
+            renderMap();
+        }});
+
+        mapWrap.addEventListener("mouseleave", () => {{
+            hoveredTile = null;
+            tooltip.style.display = "none";
+            renderMap();
+        }});
 
         // Mouse Drag to Pan
         mapWrap.addEventListener("mousedown", (e) => {{

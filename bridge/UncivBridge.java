@@ -926,13 +926,67 @@ public class UncivBridge {
             }
         }
 
+        List<Map<String, Object>> tileDetails = new ArrayList<>();
+        StringBuilder asciiGrid = new StringBuilder();
+
+        // If radius <= 0, extract the entire world map topology for rich replay rendering
+        if (radius <= 0 && tileMap != null) {
+            for (Tile tile : tileMap.getValues()) {
+                if (tile == null) continue;
+                boolean explored = player.hasExplored(tile);
+                boolean visible = tile.isVisible(player);
+
+                Map<String, Object> td = new LinkedHashMap<>();
+                td.put("x", tile.getPosition().getX());
+                td.put("y", tile.getPosition().getY());
+                td.put("terrain", tile.baseTerrain);
+                td.put("features", new ArrayList<>(tile.getTerrainFeatures()));
+                td.put("is_hill", tile.isHill());
+                td.put("is_water", tile.isWater());
+                td.put("has_river", tile.isAdjacentToRiver());
+                td.put("explored", explored);
+                td.put("visible", visible);
+
+                if (tile.getResource() != null) td.put("resource", tile.getResource());
+                if (tile.getImprovement() != null) td.put("improvement", tile.getImprovement());
+                if (tile.getNaturalWonder() != null) td.put("natural_wonder", tile.getNaturalWonder());
+                if (tile.getOwner() != null) td.put("owner", tile.getOwner().getCivName());
+
+                if (tile.isCityCenter() && tile.getCity() != null) {
+                    td.put("city", tile.getCity().getName());
+                    td.put("city_pop", tile.getCity().getPopulation().getPopulation());
+                }
+
+                // Show units only if visible (or friendly)
+                if (visible || (tile.getMilitaryUnit() != null && tile.getMilitaryUnit().getCiv() == player)) {
+                    if (tile.getMilitaryUnit() != null) {
+                        String civName = tile.getMilitaryUnit().getCiv() != null ? tile.getMilitaryUnit().getCiv().getCivName() : "Unknown";
+                        td.put("military_unit", tile.getMilitaryUnit().getName() + " (" + civName + ")");
+                        td.put("military_health", tile.getMilitaryUnit().getHealth());
+                        td.put("military_is_ours", tile.getMilitaryUnit().getCiv() == player);
+                    }
+                }
+                if (visible || (tile.getCivilianUnit() != null && tile.getCivilianUnit().getCiv() == player)) {
+                    if (tile.getCivilianUnit() != null) {
+                        String civName = tile.getCivilianUnit().getCiv() != null ? tile.getCivilianUnit().getCiv().getCivName() : "Unknown";
+                        td.put("civilian_unit", tile.getCivilianUnit().getName() + " (" + civName + ")");
+                        td.put("civilian_is_ours", tile.getCivilianUnit().getCiv() == player);
+                    }
+                }
+
+                tileDetails.add(td);
+            }
+            mapRes.put("tiles", tileDetails);
+            mapRes.put("center_x", center.getX());
+            mapRes.put("center_y", center.getY());
+            mapRes.put("radius", 0);
+            return mapRes;
+        }
+
         int minX = center.getX() - radius;
         int maxX = center.getX() + radius;
         int minY = center.getY() - radius;
         int maxY = center.getY() + radius;
-
-        StringBuilder asciiGrid = new StringBuilder();
-        List<Map<String, Object>> tileDetails = new ArrayList<>();
 
         asciiGrid.append("Map Grid (Radius ").append(radius).append(" around [").append(center.getX()).append(",").append(center.getY()).append("]):\n");
         asciiGrid.append("Legend: [C] City, [u] Our Unit, [E] Enemy Unit, [~] Water, [^] Mountain, [.] Plains/Grass, [F] Forest, [?] Fog\n\n");
@@ -971,14 +1025,20 @@ public class UncivBridge {
 
                 line.append(" ").append(symbol).append(" ");
 
-                // Add tile detail if explored
                 Map<String, Object> td = new LinkedHashMap<>();
                 td.put("x", x);
                 td.put("y", y);
                 td.put("terrain", tile.baseTerrain);
                 td.put("features", new ArrayList<>(tile.getTerrainFeatures()));
+                td.put("is_hill", tile.isHill());
+                td.put("is_water", tile.isWater());
+                td.put("has_river", tile.isAdjacentToRiver());
+                td.put("explored", true);
+                td.put("visible", tile.isVisible(player));
                 if (tile.getResource() != null) td.put("resource", tile.getResource());
                 if (tile.getImprovement() != null) td.put("improvement", tile.getImprovement());
+                if (tile.getNaturalWonder() != null) td.put("natural_wonder", tile.getNaturalWonder());
+                if (tile.getOwner() != null) td.put("owner", tile.getOwner().getCivName());
                 if (tile.isCityCenter() && tile.getCity() != null) td.put("city", tile.getCity().getName());
                 if (tile.getMilitaryUnit() != null) {
                     String civName = tile.getMilitaryUnit().getCiv() != null ? tile.getMilitaryUnit().getCiv().getCivName() : "Unknown";
