@@ -706,6 +706,49 @@ public class UncivBridge {
         stats.put("score", player.getStatForRanking(RankingType.Score));
         state.put("stats", stats);
 
+        // Victory and Game Over checks
+        boolean isGameOver = false;
+        String winner = null;
+        String victoryType = null;
+        boolean isDefeated = player.isDefeated();
+
+        for (Civilization c : game.getCivilizations()) {
+            if (!c.isBarbarian() && !c.isSpectator() && c.getVictoryManager().hasWon()) {
+                isGameOver = true;
+                winner = c.getCivName();
+                victoryType = c.getVictoryManager().getVictoryTypeAchieved();
+                break;
+            }
+        }
+
+        if (isDefeated && !isGameOver) {
+            isGameOver = true;
+            victoryType = "Defeat (All cities lost)";
+        }
+
+        int maxTurns = 500;
+        if (game.getTurns() >= maxTurns && !isGameOver) {
+            isGameOver = true;
+            victoryType = "Time Limit Reached";
+            Civilization highestScoreCiv = player;
+            int highestScore = -1;
+            for (Civilization c : game.getCivilizations()) {
+                if (!c.isBarbarian() && !c.isSpectator() && !c.isDefeated()) {
+                    int score = c.getStatForRanking(RankingType.Score);
+                    if (score > highestScore) {
+                        highestScore = score;
+                        highestScoreCiv = c;
+                    }
+                }
+            }
+            winner = highestScoreCiv.getCivName();
+        }
+
+        state.put("is_game_over", isGameOver);
+        state.put("winner", winner);
+        state.put("victory_type", victoryType);
+        state.put("is_defeated", isDefeated);
+
         // Tech
         Map<String, Object> techMap = new LinkedHashMap<>();
         String curTech = player.getTech().currentTechnologyName();

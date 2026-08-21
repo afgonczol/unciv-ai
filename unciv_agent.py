@@ -106,11 +106,28 @@ class UncivAgent:
         4. Advances turn
         """
         state = self.engine.get_state()
-        map_res = self.engine.get_map(0, 0, 6)
-        advisor_report = self.advisor.analyze(state, map_res)
-
         turn_num = state.get("turn", 0)
         civ_name = state.get("active_civ", "Unknown")
+
+        # Check if match has concluded
+        if state.get("is_game_over"):
+            winner = state.get("winner", "Unknown")
+            v_type = state.get("victory_type", "Victory")
+            print(f"\n{'='*60}")
+            if winner == civ_name:
+                print(f" 🏆 VICTORY! {civ_name} has won the game via {v_type} on Turn {turn_num}!")
+            else:
+                print(f" 🏁 GAME OVER: {winner} achieved victory via {v_type} on Turn {turn_num}.")
+            print(f"{'='*60}\n")
+            return {
+                "turn": turn_num,
+                "game_over": True,
+                "winner": winner,
+                "victory_type": v_type
+            }
+
+        map_res = self.engine.get_map(0, 0, 6)
+        advisor_report = self.advisor.analyze(state, map_res)
 
         print(f"\n{'='*60}")
         print(f" TURN {turn_num} | Civilization: {civ_name} | Score: {state.get('stats', {}).get('score', 0)}")
@@ -492,7 +509,9 @@ def main():
     try:
         while turn_count < max_turns:
             try:
-                agent.play_turn(interactive=args.interactive)
+                turn_res = agent.play_turn(interactive=args.interactive)
+                if turn_res and turn_res.get("game_over"):
+                    break
                 turn_count += 1
                 # Autosave game state after every turn
                 try:
