@@ -108,6 +108,19 @@ python3 unciv_agent.py --civ Rome --strategy "Build a massive military and conqu
 python3 unciv_agent.py --load autosave.json
 ```
 
+### 4. Interactive Browser Replay Dashboard
+
+Launch the local web visualizer to scrub turn-by-turn through your match history:
+
+```bash
+python3 replay_viewer.py
+```
+
+- 🗺️ **Hex Map**: Axial canvas map with biomes, city borders, fog of war, and moving units.
+- ⏱️ **Turn Scrubber**: Slider bar with Play/Pause, step forward/backward, and adjustable playback speeds.
+- 📊 **Advisor & Stats**: Real-time advisor reasoning, event notifications, and score/science progression graphs.
+- 📁 **Standalone Export**: Or generate a single offline `replay.html` with `python3 replay_viewer.py --export-only`.
+
 ---
 
 ## 🤖 Playing with LLMs

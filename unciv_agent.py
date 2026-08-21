@@ -70,10 +70,12 @@ class UncivAgent:
     """
 
     def __init__(self, engine: Optional[UncivEngine] = None, llm_client: Optional[LLMClient] = None,
-                 strategy_directive: str = ""):
+                 strategy_directive: str = "", record_file: str = "replay_history.json"):
         self.engine = engine or UncivEngine()
         self.advisor = StrategicAdvisor()
         self.llm = llm_client
+        self.record_file = record_file
+        self.history: List[Dict[str, Any]] = []
         self.scratchpad: Dict[str, Any] = {
             "grand_strategy": "",
             "active_military_campaign": "",
@@ -224,6 +226,38 @@ class UncivAgent:
             print("[Turn Notifications]:")
             for n in notifs:
                 print(f" * {n}")
+
+        # Snapshot for replay
+        snapshot = {
+            "turn": turn_num,
+            "civ_name": civ_name,
+            "stats": state.get("stats", {}),
+            "tech": state.get("technology", {}),
+            "policies": state.get("policies", {}),
+            "cities": state.get("cities", []),
+            "units": state.get("units", []),
+            "map": map_res.get("map", {}) if isinstance(map_res, dict) else {},
+            "advisor": {
+                "recommended_focus": advisor_report.get("recommended_focus"),
+                "threat_level": advisor_report.get("threat_level"),
+                "alerts": advisor_report.get("alerts", [])
+            },
+            "plan": plan,
+            "execution": execution_log,
+            "notifications": notifs
+        }
+        self.history.append(snapshot)
+        if self.record_file:
+            try:
+                with open(self.record_file, "w", encoding="utf-8") as rf:
+                    json.dump({
+                        "civ": civ_name,
+                        "directive": self.advisor.user_directive,
+                        "total_turns": len(self.history),
+                        "turns": self.history
+                    }, rf, indent=2)
+            except Exception:
+                pass
 
         return {
             "turn": turn_num,
@@ -399,6 +433,7 @@ def main():
     parser.add_argument("--map-size", type=str, default="Tiny", help="Map size: Tiny, Small, Medium, Large, Huge")
     parser.add_argument("--turns", type=int, default=0, help="Number of turns to play (default: 0 = play until game ends or Ctrl+C)")
     parser.add_argument("--load", type=str, default="", help="Path to save file to load (e.g. autosave.json)")
+    parser.add_argument("--record", type=str, default="replay_history.json", help="Path to record turn-by-turn replay history (default: replay_history.json)")
     parser.add_argument("--interactive", action="store_true", help="Run in interactive co-pilot mode")
     parser.add_argument("--api-base", type=str, default="", help="LLM API base URL (e.g. https://openrouter.ai/api/v1 or http://localhost:8080/v1)")
     parser.add_argument("--api-key", type=str, default="", help="API key for LLM provider")
@@ -429,7 +464,7 @@ def main():
     if args.api_base:
         llm_client = LLMClient(api_base=args.api_base, api_key=args.api_key, model=args.model)
 
-    agent = UncivAgent(engine=engine, llm_client=llm_client, strategy_directive=args.strategy)
+    agent = UncivAgent(engine=engine, llm_client=llm_client, strategy_directive=args.strategy, record_file=args.record)
 
     turn_count = 0
     max_turns = args.turns if args.turns > 0 else float("inf")
@@ -450,9 +485,9 @@ def main():
                 pass
             time.sleep(0.3)
     except KeyboardInterrupt:
-        print(f"\nGame paused by user after {turn_count} turns (saved to autosave.json).", flush=True)
+        print(f"\nGame paused by user after {turn_count} turns (saved to autosave.json and {args.record}).", flush=True)
     finally:
-        print("\nGame session completed!", flush=True)
+        print(f"\nGame session completed! Replay data saved to '{args.record}'.", flush=True)
         engine.close()
 
 if __name__ == "__main__":
