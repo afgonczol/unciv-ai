@@ -162,7 +162,7 @@ def process_turns_until_human(game_id: str, max_ai_streak: int = 20):
 
                 print(f"🤖 [Turn {turn_num}] AI Turn for '{active_civ}' is playing...", flush=True)
                 strategy = (ai_conf and ai_conf.get("strategy")) or "Balanced Strategy"
-                llm = (ai_conf and ai_conf.get("llm_client")) or None
+                llm = (ai_conf and ai_conf.get("llm_client")) or get_default_llm_client()
 
                 agent = UncivAgent(engine=engine, llm_client=llm, strategy_directive=strategy)
                 agent.play_turn(interactive=False)
@@ -188,7 +188,42 @@ def process_turns_until_human(game_id: str, max_ai_streak: int = 20):
         finally:
             engine.close()
 
+def load_env_file():
+    """Loads key-value pairs from .env into os.environ if present."""
+    if not os.path.exists(".env"):
+        return
+    try:
+        with open(".env", "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                k = k.strip()
+                v = v.strip().strip("'\"")
+                if k and k not in os.environ:
+                    os.environ[k] = v
+    except Exception:
+        pass
+
+def get_default_llm_client() -> Optional[LLMClient]:
+    """Creates a default LLMClient from .env variables if configured."""
+    api_key = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY") or ""
+    api_base = os.environ.get("LLM_API_BASE")
+    if not api_base and api_key and ("sk-or-" in api_key or os.environ.get("OPENROUTER_API_KEY")):
+        api_base = "https://openrouter.ai/api/v1"
+
+    model = os.environ.get("OPENROUTER_MODEL") or os.environ.get("LLM_MODEL")
+    if not model and api_base and "openrouter" in api_base:
+        model = "meta-llama/llama-3.3-70b-instruct:free"
+
+    if api_base:
+        return LLMClient(api_base=api_base, api_key=api_key, model=model)
+    return None
+
 def main():
+    load_env_file()
+
     parser = argparse.ArgumentParser(description="Unciv Local Multi-AI & Human vs. AI Server")
     parser.add_argument("--port", type=int, default=8088, help="Server port (default: 8088)")
     parser.add_argument("--human", type=str, default="Greece", help="Human civilization name(s) separated by comma (default: Greece)")
@@ -198,6 +233,8 @@ def main():
 
     human_civs = [c.strip() for c in args.human.split(",") if c.strip()]
     AI_CONFIGS["__HUMAN_CIVS__"] = human_civs
+
+    default_llm = get_default_llm_client()
 
     if args.ai:
         for entry in args.ai:

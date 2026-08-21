@@ -472,7 +472,27 @@ class UncivAgent:
 
         return log
 
+def load_env_file():
+    """Loads key-value pairs from .env into os.environ if present."""
+    if not os.path.exists(".env"):
+        return
+    try:
+        with open(".env", "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                k = k.strip()
+                v = v.strip().strip("'\"")
+                if k and k not in os.environ:
+                    os.environ[k] = v
+    except Exception:
+        pass
+
 def main():
+    load_env_file()
+
     parser = argparse.ArgumentParser(description="Unciv LLM Strategic Agent")
     parser.add_argument("--strategy", type=str, default="", help="Strategic directive (e.g. 'Focus on science and be aggressive against European nations')")
     parser.add_argument("--civ", type=str, default="Rome", help="Civilization to play (e.g. Rome, Greece, America)")
@@ -488,8 +508,8 @@ def main():
     parser.add_argument("--record", type=str, default="", help="Path to record turn-by-turn replay history (default: auto-generated timestamp in replays/)")
     parser.add_argument("--interactive", action="store_true", help="Run in interactive co-pilot mode")
     parser.add_argument("--api-base", type=str, default="", help="LLM API base URL (e.g. https://openrouter.ai/api/v1 or http://localhost:8080/v1)")
-    parser.add_argument("--api-key", type=str, default="", help="API key for LLM provider")
-    parser.add_argument("--model", type=str, default="", help="Model name (e.g. meta-llama/llama-3.3-70b-instruct or local model)")
+    parser.add_argument("--api-key", type=str, default="", help="API key for LLM provider (or set OPENROUTER_API_KEY in .env)")
+    parser.add_argument("--model", type=str, default="", help="Model name (e.g. meta-llama/llama-3.3-70b-instruct:free or local model)")
 
     args = parser.parse_args()
 
@@ -500,6 +520,20 @@ def main():
         timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         prefix = "resumed" if args.load else "match"
         record_path = os.path.join("replays", f"replay_{args.civ}_{prefix}_{timestamp_str}.json")
+
+    # Determine LLM configuration from CLI or .env
+    api_key = args.api_key or os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY") or ""
+    api_base = args.api_base or os.environ.get("LLM_API_BASE")
+    if not api_base and api_key and ("sk-or-" in api_key or os.environ.get("OPENROUTER_API_KEY")):
+        api_base = "https://openrouter.ai/api/v1"
+
+    model = args.model or os.environ.get("OPENROUTER_MODEL") or os.environ.get("LLM_MODEL")
+    if not model and api_base and "openrouter" in api_base:
+        model = "meta-llama/llama-3.3-70b-instruct:free"
+
+    llm_client = None
+    if api_base:
+        llm_client = LLMClient(api_base=api_base, api_key=api_key, model=model)
 
     print("[1/3] Initializing Unciv engine daemon...", flush=True)
     t0 = time.time()
@@ -527,11 +561,11 @@ def main():
         )
         print(f"      Map generated in {time.time()-t0:.1f}s", flush=True)
 
-    print(f"[3/3] Match ready! Playing as: {res.get('active_civ', args.civ)} (Turn {res.get('turn', 0)})\n", flush=True)
-
-    llm_client = None
-    if args.api_base:
-        llm_client = LLMClient(api_base=args.api_base, api_key=args.api_key, model=args.model)
+    print(f"[3/3] Match ready! Playing as: {res.get('active_civ', args.civ)} (Turn {res.get('turn', 0)})", flush=True)
+    if llm_client:
+        print(f"      🤖 LLM Strategic AI: {llm_client.model} ({llm_client.api_base})\n", flush=True)
+    else:
+        print(f"      ⚡ Advisor Engine: Built-in Strategic Heuristics\n", flush=True)
 
     agent = UncivAgent(
         engine=engine,
