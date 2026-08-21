@@ -219,8 +219,11 @@ class UncivAgent:
             print(f" > {log_entry}")
 
         # End turn
-        print("Advancing turn...", flush=True)
+        print("Advancing turn (simulating AI opponents and barbarians)...", flush=True)
+        t_turn_start = time.time()
         end_res = self.engine.end_turn()
+        t_turn_elapsed = time.time() - t_turn_start
+        print(f"      Turn advanced in {t_turn_elapsed:.1f}s", flush=True)
         notifs = end_res.get("notifications", [])
         if notifs:
             print("[Turn Notifications]:")
