@@ -14,11 +14,13 @@ while true; do
     echo " [3] Start New Game - Rome (Domination & Military Focus)"
     echo " [4] Start New Game - Custom Civ & Strategy"
     echo " [5] Launch Interactive Browser Replay Dashboard"
-    echo " [6] Run Engine Diagnostics"
+    echo " [6] Play Against Strategic AI (Human vs. AI Mode)"
+    echo " [7] Launch Official Unciv Game GUI (Unciv.jar)"
+    echo " [8] Run Engine Diagnostics"
     echo " [0] Exit"
     echo ""
     echo "============================================================"
-    read -p "Select an option (0-6): " choice
+    read -p "Select an option (0-8): " choice
 
     case $choice in
         1)
@@ -70,6 +72,19 @@ while true; do
             ;;
         6)
             clear
+            python3 play_vs_ai.py
+            read -p "Press [Enter] to return to menu..."
+            ;;
+        7)
+            clear
+            echo "Launching Unciv Desktop GUI (Unciv.jar)..."
+            echo ""
+            java -jar Unciv.jar &
+            echo "Unciv launched in background!"
+            sleep 1.5
+            ;;
+        8)
+            clear
             echo "Running Unciv AI diagnostics..."
             echo ""
             python3 run_diagnostics.py
@@ -80,7 +95,7 @@ while true; do
             exit 0
             ;;
         *)
-            echo "Invalid choice. Please choose 0-6."
+            echo "Invalid choice. Please choose 0-8."
             sleep 1
             ;;
     esac

@@ -16,18 +16,22 @@ echo  [2] Start New Game - Rome (Science ^& Rapid Expansion)
 echo  [3] Start New Game - Rome (Domination ^& Military Focus)
 echo  [4] Start New Game - Custom Civ ^& Strategy
 echo  [5] Launch Interactive Browser Replay Dashboard
-echo  [6] Run Engine Diagnostics
+echo  [6] Play Against Strategic AI (Human vs. AI Mode)
+echo  [7] Launch Official Unciv Game GUI (Unciv.jar)
+echo  [8] Run Engine Diagnostics
 echo  [0] Exit
 echo.
 echo ============================================================
-set /p choice="Select an option (0-6): "
+set /p choice="Select an option (0-8): "
 
 if "%choice%"=="1" goto RESUME
 if "%choice%"=="2" goto NEW_SCIENCE
 if "%choice%"=="3" goto NEW_MILITARY
 if "%choice%"=="4" goto NEW_CUSTOM
 if "%choice%"=="5" goto REPLAY
-if "%choice%"=="6" goto DIAGNOSTICS
+if "%choice%"=="6" goto PLAY_VS_AI
+if "%choice%"=="7" goto LAUNCH_GUI
+if "%choice%"=="8" goto DIAGNOSTICS
 if "%choice%"=="0" goto EXIT
 goto MENU
 
@@ -84,6 +88,21 @@ cls
 echo Launching Interactive Browser Replay Viewer...
 echo.
 python replay_viewer.py
+echo.
+pause
+goto MENU
+
+:PLAY_VS_AI
+cls
+python play_vs_ai.py
+echo.
+pause
+goto MENU
+
+:LAUNCH_GUI
+cls
+echo Launching Unciv Desktop Game UI...
+start javaw -jar Unciv.jar
 echo.
 pause
 goto MENU
