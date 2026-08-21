@@ -113,19 +113,28 @@ python3 unciv_agent.py \
   --barbarians Normal
 ```
 
-#### Supported Configuration Options:
-| Flag | Description | Supported Values |
-|------|-------------|------------------|
-| `--civ` | Civilization to play | `Rome`, `Greece`, `America`, `England`, `France`, `Germany`, `Egypt`, `Japan`, `China`, `India`, `Russia`, `Spain`, `Persia`, `Songhai`, `Siam`, `Iroquois`, `Aztec`, `Ottomans`, `Arabia` |
-| `--strategy` | Strategic directive | `"Focus on science and expand rapidly"`, `"Build a massive military and conquer our neighbors"`, `"Focus on cultural wonder building"`, etc. |
-| `--map-size` | World dimensions | `Tiny` (4 civs), `Small` (6 civs), `Medium` (8 civs), `Large` (10 civs), `Huge` (12 civs) |
-| `--map-type` | World geography layout | `Pangaea`, `Continents`, `Archipelago`, `Inner Sea`, `Lakes`, `Four Corners`, `Fractal`, `Spiral` |
-| `--speed` | Game pace / research scaling | `Quick` (330 turns), `Standard` (500 turns), `Epic` (750 turns), `Marathon` (1500 turns) |
-| `--difficulty`| AI handicap / challenge | `Settler`, `Chieftain`, `Warlord`, `Prince` (Standard), `King`, `Emperor`, `Immortal`, `Deity` |
-| `--opponents` | Number of rival AI empires | `1` to `15` (default: 3) |
-| `--city-states`| Number of minor city-states | `0` to `24` (`-1` = default for map size) |
-| `--barbarians`| Barbarian spawn rate | `Normal`, `None`, `Raging` |
-| `--turns` | Turn limit for session | `0` = continuous play until game over or `Ctrl+C`, `N` = run N turns |
+#### Supported Configuration Options & Defaults:
+
+If you run `python3 unciv_agent.py` without any arguments, it will launch with the **default settings** highlighted below:
+
+| Flag | Description | Default Value | Supported Values / Options |
+|:---|:---|:---|:---|
+| `--civ` | Civilization to lead | `Rome` | `Rome`, `Greece`, `America`, `England`, `France`, `Germany`, `Egypt`, `Japan`, `China`, `India`, `Russia`, `Spain`, `Persia`, `Songhai`, `Siam`, `Iroquois`, `Aztec`, `Ottomans`, `Arabia` |
+| `--strategy` | Strategic directive | `"Balanced Strategy"` | Any custom text (e.g. `"Focus on science and expand rapidly"`, `"Build a massive military and conquer our neighbors"`, `"Focus on cultural wonder building"`) |
+| `--map-size` | World dimensions | `Tiny` | `Tiny` (approx 330 tiles, 4 civs), `Small` (6 civs), `Medium` (8 civs), `Large` (10 civs), `Huge` (12 civs) |
+| `--map-type` | World geography layout | `Pangaea` | `Pangaea`, `Continents`, `Archipelago`, `Inner Sea`, `Lakes`, `Four Corners`, `Fractal`, `Spiral` |
+| `--speed` | Game pace & scaling | `Standard` | `Quick` (330 turns), `Standard` (500 turns), `Epic` (750 turns), `Marathon` (1500 turns) |
+| `--difficulty`| AI handicap & bonuses | `Prince` | `Settler`, `Chieftain`, `Warlord`, `Prince` (Standard baseline), `King`, `Emperor`, `Immortal`, `Deity` |
+| `--opponents` | Number of rival AI empires | `3` | `1` to `15` |
+| `--city-states`| Number of minor city-states | `Auto` *(2 for Tiny)* | `0` to `24` (`-1` or omitted = default for map size: Tiny=2, Small=6, Medium=8, Large=12, Huge=16) |
+| `--barbarians`| Barbarian spawn rate | `Normal` | `Normal`, `None`, `Raging` |
+| `--turns` | Turn limit for session | `0` *(Continuous)* | `0` = continuous play until game over or `Ctrl+C`, `N` = stop after N turns |
+| `--record` | Replay recording destination | Auto in `replays/` | Any custom path (defaults to `replays/replay_<civ>_match_<timestamp>.json`) |
+| `--model` | LLM Model ID | `meta-llama/llama-3.3-70b-instruct:free` | Any model ID on OpenRouter, Ollama, llama.cpp, or OpenAI endpoint |
+| `--api-base` | LLM API Base URL | `https://openrouter.ai/api/v1` *(if key set)* | Any OpenAI-compatible endpoint URL (e.g. `http://localhost:8080/v1` for llama.cpp) |
+
+> [!NOTE]
+> **Quick Launch Default**: Running `python3 unciv_agent.py` starts a **Prince difficulty, Pangaea Tiny map** match as **Rome** with **3 rival civilizations**, **2 city-states**, and **Normal barbarians**, playing under a **Balanced Strategy** until conclusion.
 
 ### 3. Play Against Strategic AI (Zero-Friction Desktop GUI)
 
