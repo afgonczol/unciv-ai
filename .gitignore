@@ -19,6 +19,7 @@ bridge_server.log
 autosave.json
 replay_history.json
 replay.html
+replays/*.json
 GameSettings.json
 *.log
 *.tmp
