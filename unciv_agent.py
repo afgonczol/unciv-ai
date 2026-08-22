@@ -17,6 +17,7 @@ from typing import Dict, Any, List, Optional
 
 from unciv_engine import UncivEngine, UncivEngineError
 from strategic_advisor import StrategicAdvisor
+from civilopedia import Civilopedia
 
 class LLMClient:
     """
@@ -76,6 +77,7 @@ class UncivAgent:
                  strategy_directive: str = "", record_file: str = "replay_history.json", resume_history: bool = False):
         self.engine = engine or UncivEngine()
         self.advisor = StrategicAdvisor()
+        self.civilopedia = Civilopedia(self.engine)
         self.llm = llm_client
         self.record_file = record_file
         self.history: List[Dict[str, Any]] = []
@@ -91,6 +93,7 @@ class UncivAgent:
             "grand_strategy": "",
             "active_military_campaign": "",
             "settlement_plan": "",
+            "civilization_dossier": {},
             "turn_history": []
         }
         if strategy_directive:
@@ -112,13 +115,17 @@ class UncivAgent:
         turn_num = state.get("turn", 0)
         civ_name = state.get("active_civ", "Unknown")
 
+        # Cache Civilization Dossier in scratchpad (Turn 0 or initial load)
+        if not self.scratchpad.get("civilization_dossier"):
+            self.scratchpad["civilization_dossier"] = self.civilopedia.get_civ_dossier(civ_name)
+
         # Check if match has concluded
         if state.get("is_game_over"):
             winner = state.get("winner", "Unknown")
             v_type = state.get("victory_type", "Victory")
             print(f"\n{'='*60}")
             if winner == civ_name:
-                print(f" 🏆 VICTORY! {civ_name} has won the game via {v_type} on Turn {turn_num}!")
+                print(f" 🏆 VICTORY! {civ_name} achieved {v_type} on Turn {turn_num}!")
             else:
                 print(f" 🏁 GAME OVER: {winner} achieved victory via {v_type} on Turn {turn_num}.")
             print(f"{'='*60}\n")
@@ -175,23 +182,49 @@ class UncivAgent:
             "}"
         )
 
+        # Annotate choices with compact live ruleset data (Civilopedia)
+        tech_data = state.get("technology", {})
+        res_techs = tech_data.get("researchable_techs", [])
+        annotated_techs = [
+            self.civilopedia.annotate_item("tech", t.get("name") if isinstance(t, dict) else t)
+            for t in res_techs[:6]
+        ]
+        
+        pol_data = state.get("policies", {})
+        adoptable_pols = pol_data.get("adoptable_policies", [])
+        annotated_policies = [
+            self.civilopedia.annotate_item("policy", p)
+            for p in adoptable_pols[:6]
+        ]
+
+        annotated_cities = []
+        for c in state.get("cities", []):
+            b_units = [self.civilopedia.annotate_item("unit", u) for u in c.get("buildable_units", [])[:6]]
+            b_buildings = [self.civilopedia.annotate_item("building", b) for b in c.get("buildable_buildings", [])[:6]]
+            annotated_cities.append({
+                "name": c["name"],
+                "pop": c["population"],
+                "cur_construction": c.get("current_construction"),
+                "buildable_units": b_units,
+                "buildable_buildings": b_buildings
+            })
+
         user_content = {
             "current_turn": turn_num,
             "civilization": civ_name,
+            "civilization_dossier": self.scratchpad.get("civilization_dossier", {}),
             "strategic_directive": self.advisor.user_directive,
             "stats": state.get("stats"),
-            "technology": state.get("technology"),
-            "policies": state.get("policies"),
-            "cities": [
-                {
-                    "name": c["name"],
-                    "pop": c["population"],
-                    "cur_construction": c.get("current_construction"),
-                    "buildable_units": c.get("buildable_units", [])[:5],
-                    "buildable_buildings": c.get("buildable_buildings", [])[:5]
-                }
-                for c in state.get("cities", [])
-            ],
+            "technology": {
+                "current_tech": tech_data.get("current_tech"),
+                "turns_to_finish": tech_data.get("turns_to_finish"),
+                "researchable_techs_with_unlocks": annotated_techs
+            },
+            "policies": {
+                "adopted_policies": pol_data.get("adopted_policies", []),
+                "adoptable_policies_with_effects": annotated_policies
+            },
+            "cities": annotated_cities,
             "units": [
                 {
                     "id": u["id"],

@@ -290,6 +290,19 @@ class UncivEngine:
             "param": param
         })
 
+    def query_civilopedia(self, category: str = "all", name: str = "", search: str = "") -> Dict[str, Any]:
+        """
+        Queries the active game ruleset (Civilopedia) for units, buildings, techs, policies, civs, or improvements.
+        Guarantees 100% fidelity to the active game version (Gods & Kings / Vanilla) and enabled mods.
+        """
+        res = self.send_command({
+            "command": "query_civilopedia",
+            "category": category,
+            "name": name,
+            "search": search
+        })
+        return res.get("civilopedia", {})
+
     def end_turn(self, timeout: float = 180.0) -> Dict[str, Any]:
         """
         Finishes current player's turn, executes AI turns, and returns turn notifications.

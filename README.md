@@ -249,7 +249,7 @@ Add the following to your `claude_desktop_config.json`:
 }
 ```
 
-### Available MCP Tools (14)
+### Available MCP Tools (17)
 
 | Tool | Description |
 |------|-------------|
@@ -265,6 +265,9 @@ Add the following to your `claude_desktop_config.json`:
 | `unciv_choose_tech` | Select active technology to research |
 | `unciv_adopt_policy` | Adopt a social policy branch |
 | `unciv_diplomacy` | Propose peace, declare war, or demand tribute |
+| `unciv_civilopedia_lookup` | Query exact stats, yields, and costs for any unit, building, tech, policy, or civilization from the active ruleset |
+| `unciv_civilopedia_search` | Search the active game ruleset (Civilopedia) for all items matching a keyword |
+| `unciv_civilization_dossier` | Generate a Civilization Strategic Dossier summarizing unique abilities, units, and structures |
 | `unciv_end_turn` | End current turn and simulate all AI opponent moves |
 | `unciv_save_game` / `unciv_load_game` | Save or restore full match state |
 
@@ -287,11 +290,14 @@ python3 -m unittest discover -s tests
 ├── requirements.txt        # Python dependencies
 ├── LICENSE                 # MIT License
 ├── .gitignore              # Git ignore rules
+├── civilopedia.py          # In-engine Civilopedia knowledge manager & dossier generator
 ├── run_diagnostics.py      # Diagnostic startup and socket tracer
 ├── strategic_advisor.py    # Strategic heuristics and threat evaluator
 ├── unciv_agent.py          # Autonomous / interactive CLI agent
 ├── unciv_engine.py         # Thread-safe Python SDK for Unciv engine
 ├── unciv_mcp_server.py     # Model Context Protocol (MCP) server
+├── unciv_server.py         # Zero-friction local multiplayer server for Desktop GUI
+├── replay_viewer.py        # Web replay visualizer with Spectator & LLM Thought Inspector
 ├── Unciv.jar               # Headless Unciv engine jar
 ├── bridge/
 │   └── UncivBridge.java    # Native Java/Kotlin JSON-RPC socket server

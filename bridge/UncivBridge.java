@@ -27,8 +27,11 @@ import com.unciv.models.metadata.GameSetupInfo;
 import com.unciv.models.metadata.Player;
 import com.unciv.models.ruleset.Building;
 import com.unciv.models.ruleset.Policy;
+import com.unciv.models.ruleset.Ruleset;
 import com.unciv.models.ruleset.RulesetCache;
+import com.unciv.models.ruleset.nation.Nation;
 import com.unciv.models.ruleset.tech.Technology;
+import com.unciv.models.ruleset.tile.TileImprovement;
 import com.unciv.models.ruleset.unit.BaseUnit;
 import com.unciv.models.stats.Stat;
 import com.unciv.ui.screens.victoryscreen.RankingType;
@@ -416,6 +419,27 @@ public class UncivBridge {
                     break;
                 }
 
+                case "query_civilopedia": {
+                    if (gameInfo == null) {
+                        response.put("status", "error");
+                        response.put("error", "No active game");
+                        break;
+                    }
+                    String category = (String) req.getOrDefault("category", "all");
+                    String itemName = (String) req.getOrDefault("name", "");
+                    String search = (String) req.getOrDefault("search", "");
+
+                    try {
+                        Map<String, Object> civData = handleCivilopediaQuery(gameInfo, category, itemName, search);
+                        response.put("status", "ok");
+                        response.put("civilopedia", civData);
+                    } catch (Throwable t) {
+                        response.put("status", "error");
+                        response.put("error", "Civilopedia query error: " + t.getMessage());
+                    }
+                    break;
+                }
+
                 case "end_turn": {
                     if (gameInfo == null) {
                         response.put("status", "error");
@@ -711,6 +735,237 @@ public class UncivBridge {
         }
 
         return res;
+    }
+
+    private static Map<String, Object> handleCivilopediaQuery(GameInfo game, String category, String itemName, String search) {
+        Map<String, Object> res = new LinkedHashMap<>();
+        Ruleset ruleset = game.getRuleset();
+        String catLower = category.toLowerCase().trim();
+        String searchLower = search.toLowerCase().trim();
+
+        // 1. Specific item lookup
+        if (!itemName.isEmpty()) {
+            Map<String, Object> found = null;
+            BaseUnit u = ruleset.getUnits().get(itemName);
+            if (u != null) {
+                found = serializeUnit(u);
+                found.put("category", "unit");
+            }
+            if (found == null) {
+                Building b = ruleset.getBuildings().get(itemName);
+                if (b != null) {
+                    found = serializeBuilding(b);
+                    found.put("category", "building");
+                }
+            }
+            if (found == null) {
+                Technology t = ruleset.getTechnologies().get(itemName);
+                if (t != null) {
+                    found = serializeTech(t, ruleset);
+                    found.put("category", "technology");
+                }
+            }
+            if (found == null) {
+                Policy p = ruleset.getPolicies().get(itemName);
+                if (p != null) {
+                    found = serializePolicy(p);
+                    found.put("category", "policy");
+                }
+            }
+            if (found == null) {
+                Nation n = ruleset.getNations().get(itemName);
+                if (n != null) {
+                    found = serializeNation(n, ruleset);
+                    found.put("category", "nation");
+                }
+            }
+            if (found == null) {
+                TileImprovement imp = ruleset.getTileImprovements().get(itemName);
+                if (imp != null) {
+                    found = serializeImprovement(imp);
+                    found.put("category", "improvement");
+                }
+            }
+            res.put("item", found);
+            return res;
+        }
+
+        // 2. Category / Search Queries
+        if (catLower.equals("all") || catLower.equals("units") || catLower.equals("unit")) {
+            List<Map<String, Object>> list = new ArrayList<>();
+            for (BaseUnit u : ruleset.getUnits().values()) {
+                if (searchLower.isEmpty() || u.getName().toLowerCase().contains(searchLower) || u.getUniques().toString().toLowerCase().contains(searchLower)) {
+                    list.add(serializeUnit(u));
+                }
+            }
+            res.put("units", list);
+        }
+
+        if (catLower.equals("all") || catLower.equals("buildings") || catLower.equals("building") || catLower.equals("wonders")) {
+            List<Map<String, Object>> list = new ArrayList<>();
+            for (Building b : ruleset.getBuildings().values()) {
+                if (catLower.equals("wonders") && !b.isWonder() && !b.isNationalWonder()) continue;
+                if (searchLower.isEmpty() || b.getName().toLowerCase().contains(searchLower) || b.getUniques().toString().toLowerCase().contains(searchLower)) {
+                    list.add(serializeBuilding(b));
+                }
+            }
+            res.put("buildings", list);
+        }
+
+        if (catLower.equals("all") || catLower.equals("techs") || catLower.equals("technologies") || catLower.equals("tech")) {
+            List<Map<String, Object>> list = new ArrayList<>();
+            for (Technology t : ruleset.getTechnologies().values()) {
+                if (searchLower.isEmpty() || t.getName().toLowerCase().contains(searchLower) || t.getUniques().toString().toLowerCase().contains(searchLower)) {
+                    list.add(serializeTech(t, ruleset));
+                }
+            }
+            res.put("technologies", list);
+        }
+
+        if (catLower.equals("all") || catLower.equals("policies") || catLower.equals("policy")) {
+            List<Map<String, Object>> list = new ArrayList<>();
+            for (Policy p : ruleset.getPolicies().values()) {
+                if (searchLower.isEmpty() || p.getName().toLowerCase().contains(searchLower) || p.getUniques().toString().toLowerCase().contains(searchLower)) {
+                    list.add(serializePolicy(p));
+                }
+            }
+            res.put("policies", list);
+        }
+
+        if (catLower.equals("all") || catLower.equals("nations") || catLower.equals("civs") || catLower.equals("civilizations")) {
+            List<Map<String, Object>> list = new ArrayList<>();
+            for (Nation n : ruleset.getNations().values()) {
+                if (searchLower.isEmpty() || n.getName().toLowerCase().contains(searchLower) || n.getUniques().toString().toLowerCase().contains(searchLower)) {
+                    list.add(serializeNation(n, ruleset));
+                }
+            }
+            res.put("nations", list);
+        }
+
+        if (catLower.equals("all") || catLower.equals("improvements") || catLower.equals("tile_improvements")) {
+            List<Map<String, Object>> list = new ArrayList<>();
+            for (TileImprovement imp : ruleset.getTileImprovements().values()) {
+                if (searchLower.isEmpty() || imp.getName().toLowerCase().contains(searchLower) || imp.getUniques().toString().toLowerCase().contains(searchLower)) {
+                    list.add(serializeImprovement(imp));
+                }
+            }
+            res.put("improvements", list);
+        }
+
+        return res;
+    }
+
+    private static Map<String, Object> serializeUnit(BaseUnit u) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("name", u.getName());
+        m.put("cost", u.getCost());
+        m.put("strength", u.getStrength());
+        m.put("ranged_strength", u.getRangedStrength());
+        m.put("range", u.getRange());
+        m.put("movement", u.getMovement());
+        m.put("required_tech", u.getRequiredTech() != null ? u.getRequiredTech() : "");
+        m.put("replaces", u.getReplaces() != null ? u.getReplaces() : "");
+        m.put("unique_to", u.getUniqueTo() != null ? u.getUniqueTo() : "");
+        m.put("uniques", new ArrayList<>(u.getUniques()));
+        return m;
+    }
+
+    private static Map<String, Object> serializeBuilding(Building b) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("name", b.getName());
+        m.put("cost", b.getCost());
+        m.put("maintenance", b.getMaintenance());
+        m.put("happiness", b.getHappiness());
+        m.put("food", b.getFood());
+        m.put("production", b.getProduction());
+        m.put("gold", b.getGold());
+        m.put("science", b.getScience());
+        m.put("culture", b.getCulture());
+        m.put("faith", b.getFaith());
+        m.put("required_tech", b.getRequiredTech() != null ? b.getRequiredTech() : "");
+        m.put("is_wonder", b.isWonder());
+        m.put("is_national_wonder", b.isNationalWonder());
+        m.put("replaces", b.getReplaces() != null ? b.getReplaces() : "");
+        m.put("unique_to", b.getUniqueTo() != null ? b.getUniqueTo() : "");
+        m.put("uniques", new ArrayList<>(b.getUniques()));
+        return m;
+    }
+
+    private static Map<String, Object> serializeTech(Technology t, Ruleset ruleset) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("name", t.getName());
+        m.put("cost", t.getCost());
+        m.put("era", t.era() != null ? t.era() : "");
+        m.put("prerequisites", new ArrayList<>(t.getPrerequisites()));
+        m.put("uniques", new ArrayList<>(t.getUniques()));
+
+        List<String> unlockedUnits = new ArrayList<>();
+        for (BaseUnit u : ruleset.getUnits().values()) {
+            if (t.getName().equals(u.getRequiredTech())) unlockedUnits.add(u.getName());
+        }
+        m.put("unlocked_units", unlockedUnits);
+
+        List<String> unlockedBuildings = new ArrayList<>();
+        List<String> unlockedWonders = new ArrayList<>();
+        for (Building b : ruleset.getBuildings().values()) {
+            if (t.getName().equals(b.getRequiredTech())) {
+                if (b.isWonder() || b.isNationalWonder()) unlockedWonders.add(b.getName());
+                else unlockedBuildings.add(b.getName());
+            }
+        }
+        m.put("unlocked_buildings", unlockedBuildings);
+        m.put("unlocked_wonders", unlockedWonders);
+
+        return m;
+    }
+
+    private static Map<String, Object> serializePolicy(Policy p) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("name", p.getName());
+        m.put("uniques", new ArrayList<>(p.getUniques()));
+        return m;
+    }
+
+    private static Map<String, Object> serializeNation(Nation n, Ruleset ruleset) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("name", n.getName());
+        m.put("leader_name", n.getLeaderName() != null ? n.getLeaderName() : "");
+        m.put("unique_name", n.getUniqueName() != null ? n.getUniqueName() : "");
+        
+        List<String> uniqueUnits = new ArrayList<>();
+        for (BaseUnit u : ruleset.getUnits().values()) {
+            if (n.getName().equals(u.getUniqueTo())) uniqueUnits.add(u.getName());
+        }
+        m.put("unique_units", uniqueUnits);
+
+        List<String> uniqueBuildings = new ArrayList<>();
+        for (Building b : ruleset.getBuildings().values()) {
+            if (n.getName().equals(b.getUniqueTo())) uniqueBuildings.add(b.getName());
+        }
+        m.put("unique_buildings", uniqueBuildings);
+
+        List<String> uniqueImprovements = new ArrayList<>();
+        for (TileImprovement imp : ruleset.getTileImprovements().values()) {
+            if (n.getName().equals(imp.getUniqueTo())) uniqueImprovements.add(imp.getName());
+        }
+        m.put("unique_improvements", uniqueImprovements);
+
+        m.put("uniques", new ArrayList<>(n.getUniques()));
+        m.put("city_state_type", n.getCityStateType() != null ? n.getCityStateType() : "");
+        return m;
+    }
+
+    private static Map<String, Object> serializeImprovement(TileImprovement imp) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("name", imp.getName());
+        m.put("tech_required", imp.getTechRequired() != null ? imp.getTechRequired() : "");
+        m.put("food", imp.getFood());
+        m.put("production", imp.getProduction());
+        m.put("gold", imp.getGold());
+        m.put("science", imp.getScience());
+        m.put("culture", imp.getCulture());
+        m.put("uniques", new ArrayList<>(imp.getUniques()));
+        return m;
     }
 
     private static Map<String, Object> buildGameState(GameInfo game) {

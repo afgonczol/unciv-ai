@@ -104,5 +104,25 @@ class TestUncivMCPServer(unittest.TestCase):
         self.assertIn("unciv_turn_planning", p_names)
         self.assertIn("unciv_war_council", p_names)
 
+    def test_06_civilopedia_tools(self):
+        # Civilopedia lookup
+        lookup_res = self.server.call_tool("unciv_civilopedia_lookup", {"category": "unit", "name": "Legion"})
+        self.assertFalse(lookup_res.get("isError", False))
+        unit_data = json.loads(lookup_res["content"][0]["text"])
+        self.assertEqual(unit_data.get("item", {}).get("name"), "Legion")
+
+        # Civilopedia search
+        search_res = self.server.call_tool("unciv_civilopedia_search", {"query": "happiness"})
+        self.assertFalse(search_res.get("isError", False))
+        search_data = json.loads(search_res["content"][0]["text"])
+        self.assertTrue(len(search_data) > 0)
+
+        # Civilization dossier
+        dossier_res = self.server.call_tool("unciv_civilization_dossier", {"civilization": "Rome"})
+        self.assertFalse(dossier_res.get("isError", False))
+        dossier_data = json.loads(dossier_res["content"][0]["text"])
+        self.assertEqual(dossier_data.get("civilization"), "Rome")
+        self.assertTrue(len(dossier_data.get("unique_units", [])) > 0)
+
 if __name__ == "__main__":
     unittest.main()

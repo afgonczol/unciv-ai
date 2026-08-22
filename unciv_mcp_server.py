@@ -11,6 +11,7 @@ import argparse
 from typing import Dict, Any, List, Optional
 from unciv_engine import UncivEngine
 from strategic_advisor import StrategicAdvisor
+from civilopedia import Civilopedia
 
 SERVER_INFO = {
     "name": "unciv-mcp-server",
@@ -27,6 +28,7 @@ class UncivMCPServer:
     def __init__(self, engine: Optional[UncivEngine] = None, advisor: Optional[StrategicAdvisor] = None):
         self.engine = engine or UncivEngine()
         self.advisor = advisor or StrategicAdvisor()
+        self.civilopedia = Civilopedia(self.engine)
 
     def get_tools_list(self) -> List[Dict[str, Any]]:
         return [
@@ -200,6 +202,39 @@ class UncivMCPServer:
                     },
                     "required": ["save_data"]
                 }
+            },
+            {
+                "name": "unciv_civilopedia_lookup",
+                "description": "Queries exact stats, costs, yields, prerequisites, and unique abilities for any unit, building, wonder, technology, policy, or civilization from the active game ruleset.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "category": {"type": "string", "enum": ["unit", "building", "wonder", "tech", "policy", "nation", "improvement", "all"], "description": "Category to query"},
+                        "name": {"type": "string", "description": "Specific item name (e.g. 'Legion', 'Library', 'Iron Working', 'Tradition', 'Rome')"}
+                    }
+                }
+            },
+            {
+                "name": "unciv_civilopedia_search",
+                "description": "Searches the active game ruleset (Civilopedia) for all items matching a keyword (e.g. 'science', 'happiness', 'defense', 'iron').",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string", "description": "Search keyword"}
+                    },
+                    "required": ["query"]
+                }
+            },
+            {
+                "name": "unciv_civilization_dossier",
+                "description": "Generates a Civilization Strategic Dossier summarizing unique abilities, unique units, unique buildings, and traits for any civilization in the active ruleset.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "civilization": {"type": "string", "description": "Civilization name (e.g. 'Rome', 'Greece', 'China')"}
+                    },
+                    "required": ["civilization"]
+                }
             }
         ]
 
@@ -372,6 +407,31 @@ class UncivMCPServer:
                 res = self.engine.load_game(arguments["save_data"])
                 return {
                     "content": [{"type": "text", "text": json.dumps(res, indent=2)}]
+                }
+
+            elif name == "unciv_civilopedia_lookup":
+                cat = arguments.get("category", "all")
+                item = arguments.get("name", "")
+                if item:
+                    res = self.engine.query_civilopedia(category=cat, name=item)
+                else:
+                    res = self.engine.query_civilopedia(category=cat)
+                return {
+                    "content": [{"type": "text", "text": json.dumps(res, indent=2)}]
+                }
+
+            elif name == "unciv_civilopedia_search":
+                q = arguments.get("query", "")
+                res = self.civilopedia.search(q)
+                return {
+                    "content": [{"type": "text", "text": json.dumps(res, indent=2)}]
+                }
+
+            elif name == "unciv_civilization_dossier":
+                civ = arguments.get("civilization", "Rome")
+                dossier = self.civilopedia.get_civ_dossier(civ)
+                return {
+                    "content": [{"type": "text", "text": json.dumps(dossier, indent=2)}]
                 }
 
             else:
