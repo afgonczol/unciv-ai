@@ -66,6 +66,8 @@ goto MENU
 cls
 set /p userciv="Enter Civilization name (default Rome): "
 if "%userciv%"=="" set userciv=Rome
+set /p userruleset="Enter Ruleset ('Civ V - Gods & Kings' / 'Civ V - Vanilla' - default 'Civ V - Gods & Kings'): "
+if "%userruleset%"=="" set userruleset=Civ V - Gods & Kings
 set /p userstrat="Enter Strategic Directive (e.g. Focus on culture): "
 if "%userstrat%"=="" set userstrat=Balanced Strategy
 set /p usermapsize="Enter Map Size (Tiny, Small, Medium, Large, Huge - default Tiny): "
@@ -76,9 +78,9 @@ set /p userdiff="Enter Difficulty (Settler, Prince, King, Deity - default Prince
 if "%userdiff%"=="" set userdiff=Prince
 
 echo.
-echo Starting game as %userciv% (%usermaptype% %usermapsize%, %userdiff%) with directive: "%userstrat%"...
+echo Starting game as %userciv% (%userruleset%, %usermaptype% %usermapsize%, %userdiff%) with directive: "%userstrat%"...
 echo.
-python unciv_agent.py --civ "%userciv%" --strategy "%userstrat%" --map-size "%usermapsize%" --map-type "%usermaptype%" --difficulty "%userdiff%"
+python unciv_agent.py --civ "%userciv%" --ruleset "%userruleset%" --strategy "%userstrat%" --map-size "%usermapsize%" --map-type "%usermaptype%" --difficulty "%userdiff%"
 echo.
 pause
 goto MENU

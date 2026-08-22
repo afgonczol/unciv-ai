@@ -48,6 +48,8 @@ while true; do
             clear
             read -p "Enter Civilization name (default Rome): " userciv
             userciv=${userciv:-Rome}
+            read -p "Enter Ruleset ('Civ V - Gods & Kings' / 'Civ V - Vanilla' - default 'Civ V - Gods & Kings'): " userruleset
+            userruleset=${userruleset:-"Civ V - Gods & Kings"}
             read -p "Enter Strategic Directive (default 'Balanced Strategy'): " userstrat
             userstrat=${userstrat:-"Balanced Strategy"}
             read -p "Enter Map Size (Tiny, Small, Medium, Large, Huge - default Tiny): " usermapsize
@@ -58,9 +60,9 @@ while true; do
             userdiff=${userdiff:-Prince}
 
             echo ""
-            echo "Starting game as $userciv ($usermaptype $usermapsize, $userdiff) with directive: \"$userstrat\"..."
+            echo "Starting game as $userciv ($userruleset, $usermaptype $usermapsize, $userdiff) with directive: \"$userstrat\"..."
             echo ""
-            python3 unciv_agent.py --civ "$userciv" --strategy "$userstrat" --map-size "$usermapsize" --map-type "$usermaptype" --difficulty "$userdiff"
+            python3 unciv_agent.py --civ "$userciv" --ruleset "$userruleset" --strategy "$userstrat" --map-size "$usermapsize" --map-type "$usermaptype" --difficulty "$userdiff"
             read -p "Press [Enter] to return to menu..."
             ;;
         5)

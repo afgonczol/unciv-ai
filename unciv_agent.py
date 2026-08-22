@@ -553,6 +553,7 @@ def main():
     parser = argparse.ArgumentParser(description="Unciv LLM Strategic Agent")
     parser.add_argument("--strategy", type=str, default="", help="Strategic directive (e.g. 'Focus on science and be aggressive against European nations')")
     parser.add_argument("--civ", type=str, default="Rome", help="Civilization to play (e.g. Rome, Greece, America)")
+    parser.add_argument("--ruleset", type=str, default="Civ V - Gods & Kings", help="Ruleset: 'Civ V - Gods & Kings' (default), 'Civ V - Vanilla', or custom mod name")
     parser.add_argument("--difficulty", type=str, default="Prince", help="Difficulty: Settler, Chieftain, Warlord, Prince, King, Emperor, Immortal, Deity")
     parser.add_argument("--map-size", type=str, default="Tiny", help="Map size: Tiny, Small, Medium, Large, Huge")
     parser.add_argument("--map-type", type=str, default="Pangaea", help="Map type: Pangaea, Continents, Archipelago, Inner Sea, Lakes, Four Corners, Fractal, etc.")
@@ -597,6 +598,13 @@ def main():
     engine = UncivEngine()
     print(f"      Daemon initialized in {time.time()-t0:.1f}s", flush=True)
 
+    # Normalize ruleset name
+    ruleset_name = args.ruleset
+    if ruleset_name.lower() in ("gods and kings", "gods & kings", "gnk", "g&k"):
+        ruleset_name = "Civ V - Gods & Kings"
+    elif ruleset_name.lower() in ("vanilla", "civ v - vanilla"):
+        ruleset_name = "Civ V - Vanilla"
+
     if args.load and os.path.exists(args.load):
         print(f"[2/3] Loading saved game from {args.load}...", flush=True)
         with open(args.load, "r", encoding="utf-8") as f:
@@ -604,11 +612,12 @@ def main():
         res = engine.load_game(save_content)
         print(f"      Game loaded successfully!", flush=True)
     else:
-        print(f"[2/3] Generating new game map ({args.civ}, Difficulty: {args.difficulty}, Map: {args.map_type} {args.map_size}, Speed: {args.speed}, Opponents: {args.opponents})...", flush=True)
+        print(f"[2/3] Generating new game map ({args.civ}, Ruleset: {ruleset_name}, Difficulty: {args.difficulty}, Map: {args.map_type} {args.map_size}, Speed: {args.speed}, Opponents: {args.opponents})...", flush=True)
         t0 = time.time()
         res = engine.new_game(
             nation=args.civ,
             difficulty=args.difficulty,
+            ruleset=ruleset_name,
             map_size=args.map_size,
             map_type=args.map_type,
             speed=args.speed,

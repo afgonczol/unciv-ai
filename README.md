@@ -120,6 +120,7 @@ If you run `python3 unciv_agent.py` without any arguments, it will launch with t
 | Flag | Description | Default Value | Supported Values / Options |
 |:---|:---|:---|:---|
 | `--civ` | Civilization to lead | `Rome` | `Rome`, `Greece`, `America`, `England`, `France`, `Germany`, `Egypt`, `Japan`, `China`, `India`, `Russia`, `Spain`, `Persia`, `Songhai`, `Siam`, `Iroquois`, `Aztec`, `Ottomans`, `Arabia` |
+| `--ruleset` | Active game expansion / ruleset | `Civ V - Gods & Kings` | `Civ V - Gods & Kings` (includes Religion & Faith), `Civ V - Vanilla`, or custom mod name |
 | `--strategy` | Strategic directive | `"Balanced Strategy"` | Any custom text (e.g. `"Focus on science and expand rapidly"`, `"Build a massive military and conquer our neighbors"`, `"Focus on cultural wonder building"`) |
 | `--map-size` | World dimensions | `Tiny` | `Tiny` (approx 330 tiles, 4 civs), `Small` (6 civs), `Medium` (8 civs), `Large` (10 civs), `Huge` (12 civs) |
 | `--map-type` | World geography layout | `Pangaea` | `Pangaea`, `Continents`, `Archipelago`, `Inner Sea`, `Lakes`, `Four Corners`, `Fractal`, `Spiral` |
@@ -134,7 +135,7 @@ If you run `python3 unciv_agent.py` without any arguments, it will launch with t
 | `--api-base` | LLM API Base URL | `https://openrouter.ai/api/v1` *(if key set)* | Any OpenAI-compatible endpoint URL (e.g. `http://localhost:8080/v1` for llama.cpp) |
 
 > [!NOTE]
-> **Quick Launch Default**: Running `python3 unciv_agent.py` starts a **Prince difficulty, Pangaea Tiny map** match as **Rome** with **3 rival civilizations**, **2 city-states**, and **Normal barbarians**, playing under a **Balanced Strategy** until conclusion.
+> **Quick Launch Default**: Running `python3 unciv_agent.py` starts a **Civ V - Gods & Kings ruleset, Prince difficulty, Pangaea Tiny map** match as **Rome** with **3 rival civilizations**, **2 city-states**, and **Normal barbarians**, playing under a **Balanced Strategy** until conclusion.
 
 ### 3. Play Against Strategic AI (Zero-Friction Desktop GUI)
 
