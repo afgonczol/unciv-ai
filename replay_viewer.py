@@ -88,6 +88,7 @@ def generate_replay_html(history_data: Dict[str, Any], available_replays: List[D
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unciv AI Replay Viewer - {civ_name}</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>">
     <style>
         :root {{
             --bg-primary: #121418;
@@ -1394,41 +1395,48 @@ def start_replay_server(target_file: Optional[str] = None, port: int = 8000, ope
     class ReplayMultiHandler(http.server.SimpleHTTPRequestHandler):
         def do_GET(self):
             parsed = urllib.parse.urlparse(self.path)
-            
-            if parsed.path in ("/", "/replay", "/replay.html"):
-                # Regenerate fresh HTML with newest replay scan
-                fresh_replays = get_available_replays("replays")
-                content = generate_replay_html(history_data, fresh_replays)
-                self.send_response(200)
-                self.send_header("Content-type", "text/html; charset=utf-8")
-                self.end_headers()
-                self.wfile.write(content.encode("utf-8"))
+            try:
+                if parsed.path == "/favicon.ico":
+                    self.send_response(204)
+                    self.end_headers()
+                    return
 
-            elif parsed.path == "/api/replays":
-                fresh_replays = get_available_replays("replays")
-                self.send_response(200)
-                self.send_header("Content-type", "application/json; charset=utf-8")
-                self.end_headers()
-                self.wfile.write(json.dumps(fresh_replays).encode("utf-8"))
+                if parsed.path in ("/", "/replay", "/replay.html"):
+                    # Regenerate fresh HTML with newest replay scan
+                    fresh_replays = get_available_replays("replays")
+                    content = generate_replay_html(history_data, fresh_replays)
+                    self.send_response(200)
+                    self.send_header("Content-type", "text/html; charset=utf-8")
+                    self.end_headers()
+                    self.wfile.write(content.encode("utf-8"))
 
-            elif parsed.path == "/api/replay":
-                query = urllib.parse.parse_qs(parsed.query)
-                req_file = query.get("file", [""])[0]
-                
-                # Look in replays/ or root
-                target = os.path.join("replays", req_file) if not os.path.exists(req_file) else req_file
-                if os.path.exists(target):
-                    with open(target, "r", encoding="utf-8") as rf:
-                        rep_data = rf.read()
+                elif parsed.path == "/api/replays":
+                    fresh_replays = get_available_replays("replays")
                     self.send_response(200)
                     self.send_header("Content-type", "application/json; charset=utf-8")
                     self.end_headers()
-                    self.wfile.write(rep_data.encode("utf-8"))
+                    self.wfile.write(json.dumps(fresh_replays).encode("utf-8"))
+
+                elif parsed.path == "/api/replay":
+                    query = urllib.parse.parse_qs(parsed.query)
+                    req_file = query.get("file", [""])[0]
+                    
+                    # Look in replays/ or root
+                    target = os.path.join("replays", req_file) if not os.path.exists(req_file) else req_file
+                    if os.path.exists(target):
+                        with open(target, "r", encoding="utf-8") as rf:
+                            rep_data = rf.read()
+                        self.send_response(200)
+                        self.send_header("Content-type", "application/json; charset=utf-8")
+                        self.end_headers()
+                        self.wfile.write(rep_data.encode("utf-8"))
+                    else:
+                        self.send_response(404)
+                        self.end_headers()
                 else:
-                    self.send_response(404)
-                    self.end_headers()
-            else:
-                super().do_GET()
+                    super().do_GET()
+            except (BrokenPipeError, ConnectionResetError):
+                pass
 
     url = f"http://127.0.0.1:{port}"
     print(f"Serving replay dashboard at: {url}")
