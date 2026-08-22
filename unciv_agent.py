@@ -19,9 +19,12 @@ from unciv_engine import UncivEngine, UncivEngineError
 from strategic_advisor import StrategicAdvisor
 from civilopedia import Civilopedia
 
+import re
+
 class LLMClient:
     """
     Unified client supporting OpenRouter, llama.cpp server, Ollama, and OpenAI-compatible endpoints.
+    Equipped with multi-attempt retry backoff, reasoning token extraction, and model error handling.
     """
 
     def __init__(self, api_base: str, api_key: str = "", model: str = ""):
@@ -29,7 +32,7 @@ class LLMClient:
         self.api_key = api_key or os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY") or ""
         self.model = model or "meta-llama/llama-3.3-70b-instruct"
 
-    def chat_completion(self, messages: List[Dict[str, str]], temperature: float = 0.4, max_tokens: int = 1500) -> str:
+    def chat_completion(self, messages: List[Dict[str, str]], temperature: float = 0.4, max_tokens: int = 3000) -> str:
         url = f"{self.api_base}/chat/completions"
         headers = {
             "Content-Type": "application/json",
@@ -40,33 +43,77 @@ class LLMClient:
             headers["HTTP-Referer"] = "https://github.com/afgonczol/unciv-ai"
             headers["X-Title"] = "Unciv AI Strategic Agent"
 
-        payload = {
+        payload: Dict[str, Any] = {
             "model": self.model,
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens
         }
 
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers=headers,
-            method="POST"
-        )
+        # Multi-attempt retry loop with backoff
+        max_retries = 3
+        last_err = None
+        for attempt in range(max_retries):
+            try:
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers=headers,
+                    method="POST"
+                )
+                with urllib.request.urlopen(req, timeout=45) as response:
+                    res_body = response.read().decode("utf-8")
+                    res_json = json.loads(res_body)
 
-        try:
-            with urllib.request.urlopen(req, timeout=60) as response:
-                res_body = response.read().decode("utf-8")
-                res_json = json.loads(res_body)
-                choices = res_json.get("choices", [])
-                if choices:
-                    return choices[0].get("message", {}).get("content", "")
-                return ""
-        except urllib.error.HTTPError as e:
-            err_msg = e.read().decode("utf-8") if e.fp else str(e)
-            raise RuntimeError(f"HTTP {e.code} from LLM endpoint ({url}): {err_msg}")
-        except Exception as e:
-            raise RuntimeError(f"Failed to communicate with LLM endpoint ({url}): {e}")
+                    if "error" in res_json:
+                        err = res_json["error"]
+                        err_msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
+                        raise RuntimeError(f"OpenRouter API Error: {err_msg}")
+
+                    choices = res_json.get("choices", [])
+                    if choices:
+                        msg = choices[0].get("message", {})
+                        content = msg.get("content") or ""
+                        reasoning = msg.get("reasoning") or msg.get("reasoning_content") or ""
+                        
+                        # Merge reasoning and content if model separates them (e.g. DeepSeek-R1 / Nemotron)
+                        if not content and reasoning:
+                            content = reasoning
+                        elif reasoning and "<think>" not in content:
+                            content = f"<think>\n{reasoning}\n</think>\n{content}"
+
+                        if not content and "text" in choices[0]:
+                            content = choices[0]["text"]
+
+                        if content:
+                            return content
+
+                    return ""
+            except urllib.error.HTTPError as e:
+                err_body = ""
+                try:
+                    err_body = e.read().decode("utf-8")
+                except Exception:
+                    pass
+                last_err = RuntimeError(f"HTTP {e.code} ({e.reason}): {err_body or e}")
+                # Retry on rate limits or server overload
+                if e.code in (429, 502, 503, 504) and attempt < max_retries - 1:
+                    time.sleep(2.0 * (attempt + 1))
+                    continue
+                raise last_err
+            except (urllib.error.URLError, TimeoutError, ConnectionResetError, OSError) as e:
+                last_err = RuntimeError(f"Connection to LLM endpoint ({url}) failed: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(1.5 * (attempt + 1))
+                    continue
+                raise last_err
+            except Exception as e:
+                last_err = RuntimeError(f"LLM request error: {e}")
+                raise last_err
+
+        if last_err:
+            raise last_err
+        return ""
 
 class UncivAgent:
     """
@@ -255,11 +302,14 @@ class UncivAgent:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": json.dumps(user_content, indent=2)}
                 ])
-                plan = self._extract_json(raw_response)
-                if plan:
-                    is_llm_used = True
+                if raw_response and raw_response.strip():
+                    plan = self._extract_json(raw_response)
+                    if plan:
+                        is_llm_used = True
+                    else:
+                        llm_error_str = "Could not parse JSON structure from LLM response."
                 else:
-                    llm_error_str = "Could not parse JSON from LLM response."
+                    llm_error_str = "LLM returned an empty response (possible token cutoff, rate limit, or model timeout)."
             except Exception as e:
                 llm_error_str = str(e)
                 print(f"LLM consultation error: {e}")
@@ -371,25 +421,75 @@ class UncivAgent:
         }
 
     def _extract_json(self, text: str) -> Optional[Dict[str, Any]]:
-        text = text.strip()
-        if text.startswith("```json"):
-            text = text[7:]
-        if text.startswith("```"):
-            text = text[3:]
-        if text.endswith("```"):
-            text = text[:-3]
-        text = text.strip()
+        if not text or not text.strip():
+            return None
 
-        try:
-            return json.loads(text)
-        except Exception:
-            start = text.find("{")
-            end = text.rfind("}")
-            if start != -1 and end != -1 and end > start:
+        cleaned = text.strip()
+        thought_process = ""
+
+        # Extract reasoning from <think>...</think> if present
+        if "<think>" in cleaned and "</think>" in cleaned:
+            parts = cleaned.split("</think>", 1)
+            thought_process = parts[0].replace("<think>", "").strip()
+            cleaned = parts[1].strip()
+        elif "<think>" in cleaned:
+            parts = cleaned.split("<think>", 1)
+            cleaned = parts[1].strip()
+
+        # 1. Look for ```json ... ``` code blocks
+        blocks = re.findall(r"```(?:json)?\s*([\s\S]*?)\s*```", cleaned, re.IGNORECASE)
+        for block in reversed(blocks):
+            b_str = block.strip()
+            try:
+                parsed = json.loads(b_str)
+                if isinstance(parsed, dict):
+                    if thought_process and not parsed.get("strategic_analysis"):
+                        parsed["strategic_analysis"] = thought_process
+                    return parsed
+            except Exception:
+                # Try fixing trailing commas
+                fixed = re.sub(r",\s*([\]}])", r"\1", b_str)
                 try:
-                    return json.loads(text[start:end+1])
+                    parsed = json.loads(fixed)
+                    if isinstance(parsed, dict):
+                        if thought_process and not parsed.get("strategic_analysis"):
+                            parsed["strategic_analysis"] = thought_process
+                        return parsed
                 except Exception:
                     pass
+
+        # 2. Try parsing cleaned text directly
+        try:
+            parsed = json.loads(cleaned)
+            if isinstance(parsed, dict):
+                if thought_process and not parsed.get("strategic_analysis"):
+                    parsed["strategic_analysis"] = thought_process
+                return parsed
+        except Exception:
+            pass
+
+        # 3. Find outermost matching { ... } block
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            candidate = cleaned[start:end+1]
+            try:
+                parsed = json.loads(candidate)
+                if isinstance(parsed, dict):
+                    if thought_process and not parsed.get("strategic_analysis"):
+                        parsed["strategic_analysis"] = thought_process
+                    return parsed
+            except Exception:
+                fixed = re.sub(r",\s*([\]}])", r"\1", candidate)
+                try:
+                    parsed = json.loads(fixed)
+                    if isinstance(parsed, dict):
+                        if thought_process and not parsed.get("strategic_analysis"):
+                            parsed["strategic_analysis"] = thought_process
+                        return parsed
+                except Exception:
+                    pass
+
         return None
 
     def _build_heuristic_plan(self, state: Dict[str, Any], advisor_report: Dict[str, Any]) -> Dict[str, Any]:

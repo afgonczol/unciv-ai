@@ -91,6 +91,14 @@ class UncivEngine:
 
                     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                    s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+                    if hasattr(socket, "TCP_KEEPIDLE"):
+                        try:
+                            s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 10)
+                            s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 5)
+                            s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3)
+                        except Exception:
+                            pass
                     s.settimeout(5.0)
                     try:
                         s.connect(("127.0.0.1", self.port))
