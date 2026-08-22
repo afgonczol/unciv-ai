@@ -101,16 +101,21 @@ class StrategicAdvisor:
         """
         Runs comprehensive analysis on current state and returns structured strategic advice.
         """
+        military = self._analyze_military(state, map_data)
+        expansion = self._analyze_expansion(state, map_data)
+        bottlenecks = self._detect_bottlenecks(state)
+        rec_focus = self._get_recommended_focus(state, military, bottlenecks)
+
         analysis = {
             "user_directive": self.user_directive or "Default balanced grand strategy",
             "strategic_weights": self.directive_weights,
             "target_civs": self.target_civilizations,
-            "recommended_focus": self._get_recommended_focus(),
-            "military_assessment": self._analyze_military(state, map_data),
-            "expansion_analysis": self._analyze_expansion(state, map_data),
+            "recommended_focus": rec_focus,
+            "military_assessment": military,
+            "expansion_analysis": expansion,
             "technology_roadmap": self._analyze_technology(state),
             "city_management_advice": self._analyze_cities(state),
-            "bottlenecks_and_alerts": self._detect_bottlenecks(state),
+            "bottlenecks_and_alerts": bottlenecks,
             "suggested_actions": []
         }
 
@@ -118,11 +123,68 @@ class StrategicAdvisor:
         analysis["suggested_actions"] = self._generate_suggested_actions(analysis, state)
         return analysis
 
-    def _get_recommended_focus(self) -> str:
+    def _get_recommended_focus(self, state: Optional[Dict[str, Any]] = None,
+                                military: Optional[Dict[str, Any]] = None,
+                                bottlenecks: Optional[List[str]] = None) -> str:
+        """
+        Dynamically calculates active strategic focus:
+        1. Emergency live crisis overrides (Severe Unhappiness, Bankruptcy, Total War)
+        2. Configured player strategic directives (Science, Domination, Culture, Expansion)
+        3. Progression phase heuristics (Early Scouting, Midgame Infrastructure)
+        """
+        # 1. Emergency Live Situation Overrides
+        if state:
+            stats = state.get("stats", {})
+            happiness = stats.get("happiness", 0)
+            gold = stats.get("gold", 0)
+            gpt = stats.get("gold_per_turn", 0)
+
+            # Severe happiness crisis
+            if happiness <= -10:
+                return "Emergency: Civil Unrest & Luxuries"
+            elif happiness < 0:
+                return "Happiness Stabilization & Luxuries"
+
+            # Economic bankruptcy
+            if gold <= 0 and gpt < -2:
+                return "Economic Solvency & Debt Relief"
+
+        if military:
+            wars = military.get("active_wars", [])
+            threat = military.get("threat_level", "Low")
+            if len(wars) > 0:
+                if self.directive_weights.get("military", 1.0) > 1.5:
+                    return "Total War & Conquest"
+                return "Military Defense & War Mobilization"
+            elif "Moderate" in threat or "High" in threat:
+                return "Border Defense & Barbarian Suppression"
+
+        # 2. Player Directive Focus
         weights = self.directive_weights
         top_focus = max(weights.items(), key=lambda x: x[1])
         if top_focus[1] > 1.2:
+            f_name = top_focus[0].lower()
+            if f_name == "science":
+                return "Scientific Advancement & Tech Leap"
+            elif f_name == "military":
+                return "Military Mobilization & Domination"
+            elif f_name == "culture":
+                return "Cultural Prosperity & Wonder Building"
+            elif f_name == "economy":
+                return "Commercial Empire & Wealth Generation"
+            elif f_name == "expansion":
+                return "Rapid Imperial Expansion & Settlement"
             return top_focus[0].capitalize()
+
+        # 3. Dynamic Era / Progression Phase Defaults
+        if state:
+            turn = state.get("turn", 0)
+            cities = state.get("cities", [])
+            if turn < 20 and len(cities) <= 1:
+                return "Early Exploration & Capital Growth"
+            elif len(cities) >= 4 and state.get("stats", {}).get("happiness", 0) > 5:
+                return "Imperial Infrastructure & Development"
+
         return "Balanced Growth & Exploration"
 
     def _analyze_military(self, state: Dict[str, Any], map_data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
@@ -356,7 +418,8 @@ class StrategicAdvisor:
         # City orders
         for ca in analysis.get("city_management_advice", []):
             if "IDLE" in ca.get("current_construction", ""):
-                rec = ca.get("recommended_constructions", ["Scout"])[0]
+                recs = ca.get("recommended_constructions") or ["Scout"]
+                rec = recs[0]
                 actions.append(f"City Order: Set production in '{ca['name']}' to '{rec.split(' ')[0]}'.")
 
         # Settlers
